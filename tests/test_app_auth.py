@@ -1,5 +1,6 @@
 """Protect every root-app route and clear clinical state on sign out."""
 
+import json
 from pathlib import Path
 import unittest
 from unittest.mock import patch
@@ -127,6 +128,35 @@ class ClinicalGatewayTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state['page'], 'legacy_ehr')
         self.assertEqual(app.session_state['user_role'], 'PT')
+        self.assertFalse(app.query_params)
+
+    def test_orange_cell_uses_a_streamlit_event_instead_of_a_reload_link(self):
+        app = self.app()
+        app.session_state['authenticated'] = True
+        app.run()
+        self.assertFalse(app.exception)
+        component = app.get('bidi_component')[0].proto
+        markup = json.loads(component.json)
+        self.assertIn('<button type="button" class="ecw-ed-vance"', markup)
+        self.assertIn('data-open-ed-vance', markup)
+        self.assertNotIn('href=', markup)
+        self.assertIn("setTriggerValue('open_chart', true)", component.js_content)
+
+    def test_query_routing_and_repeated_reruns_preserve_authentication_and_drafts(self):
+        app = self.app()
+        app.session_state['authenticated'] = True
+        app.session_state['user_role'] = 'PT'
+        app.session_state['draft_note'] = 'Unsaved clinical session content'
+        app.run()
+        app.query_params['ed_vance'] = '1'
+        for _ in range(3):
+            app.run()
+            self.assertFalse(app.exception)
+            self.assertTrue(app.session_state['authenticated'])
+            self.assertEqual(app.session_state['user_role'], 'PT')
+            self.assertEqual(app.session_state['page'], 'legacy_ehr')
+            self.assertEqual(app.session_state['draft_note'], 'Unsaved clinical session content')
+            self.assertFalse(app.text_input)
         self.assertFalse(app.query_params)
 
 

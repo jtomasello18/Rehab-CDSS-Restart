@@ -22,6 +22,33 @@ st.set_page_config(
 
 st.markdown(INTERACTION_STYLE, unsafe_allow_html=True)
 
+# Send the schedule-cell click through Streamlit's existing connection rather
+# than following an HTML link, which would create a fresh unauthenticated session.
+schedule_grid = st.components.v2.component(
+    "ecw_schedule_grid",
+    html='<div class="ecw-schedule-grid" data-ecw-schedule-grid></div>',
+    js="""
+    export default function({ data, parentElement, setTriggerValue }) {
+        const grid = parentElement.querySelector('[data-ecw-schedule-grid]');
+        // data is trusted schedule markup built from the fixed case below.
+        grid.innerHTML = data;
+        const button = grid.querySelector('[data-open-ed-vance]');
+        const openChart = () => setTriggerValue('open_chart', true);
+        button.addEventListener('click', openChart);
+        return () => button.removeEventListener('click', openChart);
+    }
+    """,
+    isolate_styles=False,
+)
+
+
+def open_ed_vance_chart():
+    """Navigate only within an already authenticated clinical session."""
+    if st.session_state.get("authenticated", False):
+        st.session_state.user_role = "PT"
+        st.session_state.page = "legacy_ehr"
+
+
 def render_secure_gateway():
     """Render the app's only login form; success opens the provider schedule."""
     st.markdown(
@@ -100,6 +127,7 @@ def render_schedule():
         .ecw-calendar td { padding:4px 0; border:1px solid #dfe3e4; }
         .ecw-calendar .selected { background:#e66c37; color:#fff; font-weight:bold; }
         .ecw-check { line-height:1.9; white-space:nowrap; font-size:11px; }
+        .ecw-schedule-grid { font:12px Arial,Helvetica,sans-serif; color:#222; }
         .ecw-grid-title { background:#555; color:#fff; text-align:center; padding:7px; margin-top:8px; font-weight:bold; border:1px solid #444; }
         .ecw-grid { border-collapse:collapse; width:100%; table-layout:fixed; }
         .ecw-grid th, .ecw-grid td { border:1px solid #b8c4d0; height:34px; padding:2px 4px; box-sizing:border-box; }
@@ -112,7 +140,9 @@ def render_schedule():
         .ecw-lin { background:#7a7a7a; }
         .ecw-lunch { background:#6e6e6e; }
         .ecw-appointment { background:#fff; border:1px solid #333; border-left:4px solid #2e6da4; color:#111; font-size:11px; line-height:1.15; padding:3px 6px; box-sizing:border-box; }
-        .ecw-ed-vance { display:block; background:#f37021; border:1px solid #b84d0d; color:#fff !important; font-size:11px; font-weight:bold; line-height:1.15; padding:3px 6px; text-decoration:none !important; box-sizing:border-box; }
+        .ecw-ed-vance { display:block; width:100%; background:#f37021; border:1px solid #b84d0d; color:#fff !important; font: bold 11px/1.15 Arial,Helvetica,sans-serif; padding:3px 6px; text-align:left; cursor:pointer; box-sizing:border-box; }
+        .ecw-ed-vance:hover { background:#d96015; }
+        .ecw-ed-vance:focus-visible { outline:2px solid #145b6e; outline-offset:2px; }
         .st-key-open_selected_chart button { background:#f37021 !important; border-color:#b84d0d !important; color:#fff !important; font-weight:700 !important; border-radius:2px !important; }
         </style>
         <div class="ecw-schedule">
@@ -169,7 +199,7 @@ def render_schedule():
                     cell_class = "ecw-lunch"
                 appointment = appointments.get((time, provider_index))
                 if time == "03:00 PM" and provider_index == 0:
-                    content = '<a class="ecw-ed-vance" href="?ed_vance=1&amp;role=PT">[7] Vance, Ed 05/14/1959 (67Y) — Stroke F/U / Outpatient Eval</a>'
+                    content = '<button type="button" class="ecw-ed-vance" data-open-ed-vance aria-label="Open Ed Vance chart, 3:00 PM outpatient evaluation">[7] Vance, Ed 05/14/1959 (67Y) — Stroke F/U / Outpatient Eval</button>'
                 elif appointment:
                     content = f'<div class="ecw-appointment">{appointment}</div>'
                 else:
@@ -177,14 +207,18 @@ def render_schedule():
                 grid_rows.append(f'<td class="ecw-cell {cell_class}">{content}</td>')
             grid_rows.append("</tr>")
         grid_rows.append("</tbody></table>")
-        st.markdown("".join(grid_rows), unsafe_allow_html=True)
+        schedule_grid(
+            data="".join(grid_rows),
+            key="ecw_schedule_grid",
+            on_open_chart_change=open_ed_vance_chart,
+        )
         if st.button(
             "Open Selected Chart: [7] Vance, Ed — 3:00 PM (Outpatient Eval)",
             type="primary",
             use_container_width=True,
             key="open_selected_chart",
         ):
-            st.session_state.page = "legacy_ehr"
+            open_ed_vance_chart()
             st.rerun()
 
 
@@ -410,7 +444,10 @@ def render_aria_dashboard():
     )
 
 
-if not st.session_state.get("authenticated", False):
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
     st.session_state.page = "gateway"
     render_secure_gateway()
     st.stop()
@@ -423,7 +460,9 @@ st.session_state.user_role = "PT"
 st.sidebar.button("Sign Out", key="gateway_sign_out", type="tertiary", on_click=sign_out)
 
 if "ed_vance" in st.query_params:
-    st.session_state.page = "legacy_ehr"
+    # Reached only after the gate. A URL is a navigation request, never proof
+    # of identity, and clearing it must not reset the authenticated session.
+    open_ed_vance_chart()
     st.query_params.clear()
 
 if st.session_state.get("page") not in {"schedule", "legacy_ehr", "aria_dashboard"}:
