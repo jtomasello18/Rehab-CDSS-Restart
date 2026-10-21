@@ -1,0 +1,78 @@
+import assert from 'node:assert/strict';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import PatientTracker from '../src/components/ProgressNoteTab';
+import { trackerMetrics, metricDelta, encounters, safetyFlags } from '../src/data/patientTracker';
+
+// Regressions in outcome direction must not turn a slower TUG green or round
+// small gait changes away. Unknown encounters must not become interpolations.
+const walk = metricDelta(trackerMetrics.pt[0]);
+assert.equal(walk.tone, 'danger');
+assert.match(walk.text, /-0\.13 m\/s/);
+const tug = metricDelta(trackerMetrics.pt[2]);
+assert.equal(tug.tone, 'danger');
+assert.match(tug.text, /\+5\.2 s slower/);
+assert.equal(metricDelta({ ...trackerMetrics.pt[2], current: 12 }).tone, 'success');
+assert.equal(metricDelta(trackerMetrics.ot[0]).tone, 'success');
+assert.match(metricDelta(trackerMetrics.slp[1]).text, /\+7\.6 pts/);
+assert.equal(metricDelta(trackerMetrics.physician[1]).tone, 'success');
+assert.equal(trackerMetrics.physician[1].initial, '134/82');
+assert.equal(trackerMetrics.physician[2].initial, 74);
+assert.ok(Object.values(trackerMetrics).flat().every(metric => metric.prior === null || metric.id === 'baclofen'));
+
+for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
+  const markup = renderToStaticMarkup(<PatientTracker args={{ role }} onOpenEvidenceBridge={() => {}} />);
+  assert.equal((markup.match(/aria-pressed=/g) ?? []).length, 4);
+  assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 1);
+  assert.equal((markup.match(/data-metric=/g) ?? []).length, 4);
+  assert.match(markup, /Vance, E\. IRF Discharge \(09\/29\)/);
+  assert.match(markup, /Vance, E\. Outpatient Eval \(10\/13\)/);
+  const normativePanel = markup.slice(markup.indexOf('Normative Performance Panel'));
+  assert.doesNotMatch(normativePanel, /Not supplied|Not recorded|Not re-measured|missing reference values and measurements/);
+  assert.match(normativePanel, /IRF Discharge Baseline \(09\/29\) vs\. Outpatient Evaluation \(10\/13\)/);
+  if (role === 'OT') {
+    assert.match(normativePanel, /Grade 2 \(Persistent R elbow flexor tone\)/);
+    assert.doesNotMatch(normativePanel, /Rigid in flexion/);
+  }
+  if (role === 'MD') {
+    assert.match(normativePanel, /134\/82 mmHg/);
+    assert.match(normativePanel, /13\.4 mL\/kg\/min/);
+    assert.doesNotMatch(normativePanel, /Stable Sinus Rhythm/);
+  }
+  assert.doesNotMatch(markup, /Matched Evidence Bridge PDF Passages/);
+  assert.doesNotMatch(markup, /Patient-Specific Action|Missing dated measurements|Clopidogrel|Atorvastatin|Lisinopril|Grade 3|Gr 3/);
+  assert.equal((markup.match(/data-safety-flag/g) ?? []).length, 2);
+  assert.match(markup, /Hemi-walker with Standby Assist \(SBA\) · 50 ft/);
+  assert.match(markup, /R ankle plantarflexors Grade 1\+/);
+  assert.match(markup, /Case reference/);
+  if (role === 'MD') {
+    const table = markup.match(/<table[^>]*>[\s\S]*?<\/table>/)![0];
+    assert.equal((table.match(/<tr/g) ?? []).length, 2);
+    assert.match(table, /Increased to 10mg TID/);
+  }
+  assert.doesNotMatch(markup, /<select[^>]*disabled/);
+  assert.doesNotMatch(markup, /Bayesian|Systemic Risk Profile|<svg[^>]*recharts/);
+  assert.match(markup, role === 'PT' ? /data-metric="tug"/ : role === 'OT' ? /data-metric="mas"/ : role === 'SLP' ? /data-metric="wab"/ : /data-metric="baclofen"/);
+}
+
+const escaped = renderToStaticMarkup(<PatientTracker args={{ role: 'PT', trackerEvidence: {
+  sources: { pt: [{ document_id: 'pdf-real', filename: '<Guideline>.pdf', page_number: 119,
+    text: '<script>unsafe()</script> An exact extracted passage.', star_rating: 4 }] },
+} }} />);
+assert.match(escaped, /&lt;Guideline&gt;\.pdf/);
+assert.match(escaped, /Page 119/);
+assert.match(escaped, /&lt;script&gt;/);
+assert.doesNotMatch(escaped, /<script>/);
+assert.match(escaped, /★★★★☆/);
+assert.match(escaped, /Matched Evidence Bridge PDF Passages/);
+assert.match(escaped, /\[\(Strong Recommendation, p\. 11\)\]/);
+assert.deepEqual(encounters.map(e => [e.date, e.week, e.label]), [
+  ['09/29', 10, 'IRF Discharge'], ['10/06', 11, 'MD Follow-up'], ['10/13', 12, 'Outpatient Eval'],
+]);
+for (const flags of Object.values(safetyFlags)) {
+  const medicationFlag = flags.find(flag => /PHARMACOLOGICAL/.test(flag.title))!;
+  assert.match(medicationFlag.text, /may be correlated with/);
+  assert.ok(flags.every(flag => flag.text.split(/(?<=[.!?])\s+/).length <= 2));
+}
+
+console.log('Patient Tracker checks passed: clinical delta direction, all specialties, missing dates, and PDF provenance.');

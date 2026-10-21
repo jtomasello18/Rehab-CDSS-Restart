@@ -1,0 +1,14 @@
+node_modules/
+frontend/dist/
+__pycache__/
+.streamlit/
+*.py[cod]
+.env
+
+knowledge_base/*.pdf
+knowledge_base/*.json
+knowledge_base/.*.tmp
+
+.venv
+node_modules
+.env

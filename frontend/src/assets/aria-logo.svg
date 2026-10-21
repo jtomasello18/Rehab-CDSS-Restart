@@ -1,0 +1,32 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ARIA">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E3A46"/>
+      <stop offset="0.55" stop-color="#155C6B"/>
+      <stop offset="1" stop-color="#1E7A8C"/>
+    </linearGradient>
+    <linearGradient id="stroke" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#57C4C9"/>
+      <stop offset="1" stop-color="#EAF7F7"/>
+    </linearGradient>
+    <radialGradient id="spark" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FBE6AE"/>
+      <stop offset="0.55" stop-color="#E8B04B"/>
+      <stop offset="1" stop-color="#E8B04B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="256" height="256" rx="60" fill="#145b6e"/>
+
+  <circle cx="128" cy="128" r="86" fill="none" stroke="#57C4C9" stroke-opacity="0.16" stroke-width="8"/>
+
+  <path d="M 78 192 L 132 78" fill="none" stroke="url(#stroke)" stroke-width="15" stroke-linecap="round"/>
+
+  <path d="M 178 192 C 176 150, 168 116, 150 84" fill="none" stroke="url(#stroke)" stroke-width="15" stroke-linecap="round"/>
+
+  <path d="M 102 150 L 168 150" fill="none" stroke="#EAF7F7" stroke-opacity="0.7" stroke-width="11" stroke-linecap="round"/>
+
+  <circle cx="141" cy="74" r="34" fill="url(#spark)"/>
+  <circle cx="141" cy="74" r="12.5" fill="#F4C863"/>
+  <circle cx="141" cy="74" r="12.5" fill="none" stroke="#FBE6AE" stroke-width="2.5"/>
+</svg>

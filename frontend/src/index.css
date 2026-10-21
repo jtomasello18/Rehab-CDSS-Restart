@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: transparent; }
+* { box-sizing: border-box; }
+html, body, #root {
+  background: transparent !important;
+  background-color: transparent !important;
+  margin: 0;
+  padding: 0;
+}
+body { min-width: 280px; }
+
+/* Shared tokens used by the imported Figma components. */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --primary: #0284c7;
+  --primary-foreground: #ffffff;
+  --secondary: #e2e8f0;
+  --secondary-foreground: #1e293b;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f8fafc;
+  --accent-foreground: #0f172a;
+  --border: #cbd5e1;
+  --ring: #38bdf8;
+  --destructive: #ef4444;
+  --warning: #f59e0b;
+  --alert: #f43f5e;
+}
+
+.app-shell { min-height: 100vh; background: transparent !important; }
+.app-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1.25rem;
+  color: white;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+}
+.app-nav__brand { font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.app-nav__tabs { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+.app-nav__tab {
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  color: #cbd5e1;
+  background: transparent;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.app-nav__tab:hover, .app-nav__tab--active { color: white; background: #334155; border-color: #475569; }
+.app-content { min-height: calc(100vh - 57px); }

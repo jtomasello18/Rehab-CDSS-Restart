@@ -1,0 +1,6 @@
+streamlit>=1.37.0
+python-dotenv
+anthropic
+pandas
+requests
+pypdf>=6.21.1

@@ -1,0 +1,117 @@
+.aria-charting {
+  --scribe-teal: #145b6e;
+  --scribe-hover: #0f4c5c;
+  --scribe-slate: #f8fafc;
+  --scribe-border: #cbd5e1;
+}
+
+.aria-charting .scribe-mode,
+.aria-charting .scribe-button,
+.aria-charting .scribe-action-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid var(--scribe-border);
+  border-radius: 6px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  transition: background-color 150ms, border-color 150ms;
+}
+
+.aria-charting .scribe-mode {
+  background: #fff;
+  color: #334155;
+}
+
+.aria-charting .scribe-mode.is-active,
+.aria-charting .scribe-button-primary {
+  border-color: var(--scribe-teal);
+  background: var(--scribe-teal);
+  color: #fff;
+}
+
+.aria-charting .scribe-mode.is-active:hover,
+.aria-charting .scribe-button-primary:hover:not(:disabled) {
+  border-color: var(--scribe-hover);
+  background: var(--scribe-hover);
+}
+
+.aria-charting .scribe-button-secondary {
+  border-color: var(--scribe-teal);
+  background: #fff;
+  color: var(--scribe-teal);
+}
+
+.aria-charting .scribe-capture-toolbar {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.aria-charting .scribe-capture-toolbar .scribe-button {
+  height: 42px;
+  flex: 1 1 auto;
+}
+
+.aria-charting .scribe-action-chip {
+  min-height: 38px;
+  padding: 8px 12px;
+  background: var(--scribe-slate);
+  color: #1e293b;
+  font-size: 13px;
+  white-space: normal;
+  text-align: left;
+}
+
+.aria-charting .scribe-action-chip:hover:not(:disabled),
+.aria-charting .scribe-mode:not(.is-active):hover,
+.aria-charting .scribe-button-secondary:hover {
+  border-color: var(--scribe-teal);
+  background: #f0f7f9;
+}
+
+.aria-charting button:focus-visible,
+.aria-charting input:focus,
+.aria-charting textarea:focus,
+.aria-charting select:focus {
+  outline: none;
+  border-color: var(--scribe-teal);
+  box-shadow: 0 0 0 2px rgb(20 91 110 / 25%);
+}
+
+.aria-charting button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.aria-charting .scribe-sign-confirmation {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--scribe-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--scribe-slate);
+  color: var(--scribe-teal);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .aria-charting .scribe-capture-toolbar {
+    flex-direction: column;
+  }
+
+  .aria-charting footer .scribe-button {
+    width: 100%;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+}
