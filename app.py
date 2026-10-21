@@ -1,3 +1,6 @@
+import hashlib
+import hmac
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,43 +22,62 @@ st.set_page_config(
 
 st.markdown(INTERACTION_STYLE, unsafe_allow_html=True)
 
-if "ed_vance" in st.query_params:
-    st.session_state.page = "legacy_ehr"
-    st.session_state.user_role = st.query_params.get("role", "PT")
-    st.query_params.clear()
-
-if "page" not in st.session_state:
-    st.session_state.page = "login"
-
-
 def render_login():
-    """Render the native ARIA login screen."""
+    """Render the shared clinical access gate without exposing a patient view."""
     st.markdown(
         """
         <style>
-        .aria-banner { text-align: center; padding: 1.5rem 0 0.5rem; }
-        .aria-banner h1 { color: #0f4c5c; margin-bottom: 0.25rem; }
-        .aria-banner p { color: #64748b; margin-top: 0; }
+        .stApp { background: #f8fafc; }
+        .st-key-aria_secure_gateway {
+            background: #ffffff; border-color: #cbd5e1 !important;
+            border-radius: 12px; padding: 1.5rem !important;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+        }
+        .aria-gateway-logo { display: block; width: 56px; height: 56px; margin-bottom: 16px; }
+        .st-key-aria_secure_gateway h3 { color: #145b6e; }
+        .st-key-gateway_sign_in button {
+            background: #145b6e !important; border-color: #145b6e !important;
+            color: #ffffff !important; border-radius: 6px; font-weight: 600;
+        }
+        .st-key-gateway_sign_in button:hover { background: #0f4c5c !important; }
         </style>
-        <div class="aria-banner">
-            <h1>eClinicalWorks 12e</h1>
-            <p>Provider Login</p>
-        </div>
         """,
         unsafe_allow_html=True,
     )
 
-    _, login_card, _ = st.columns([1, 1.1, 1])
+    _, login_card, _ = st.columns([1, 1.4, 1])
     with login_card:
-        with st.container(border=True):
-            st.subheader("Welcome back")
-            st.caption("Sign in to access the rehabilitation workspace.")
-            username = st.text_input("Username", placeholder="Enter your username")
-            st.text_input("Password", type="password", placeholder="Enter your password")
-            if st.button("Log in", type="primary", use_container_width=True):
-                st.session_state.user_role = "PT" if username == "pt_admin" else "Viewer"
-                st.session_state.page = "schedule"
-                st.rerun()
+        with st.container(border=True, key="aria_secure_gateway"):
+            st.markdown(f'<img class="aria-gateway-logo" src="{PAGE_ICON}" alt="ARIA">', unsafe_allow_html=True)
+            st.subheader("ARIA Secure Clinical Gateway")
+            st.caption("Authorized Clinical Personnel Only — eClinicalWorks 12e & ARIA Integration")
+            with st.form("clinical_gateway", clear_on_submit=True, border=False):
+                username = st.text_input("Username", key="gateway_username")
+                password = st.text_input("Password", type="password", key="gateway_password")
+                submitted = st.form_submit_button("Sign In", type="primary", use_container_width=True, key="gateway_sign_in")
+            if submitted:
+                # Compare the exact, case-sensitive shared credentials on the
+                # server. Keep a verifier rather than the password in source.
+                username_valid = hmac.compare_digest(username.encode("utf-8"), b"ARIAprovider")
+                password_valid = hmac.compare_digest(
+                    hashlib.sha256(password.encode("utf-8")).hexdigest(),
+                    "44b4202602eff5ee870640bc62733376914b137505ccfcf7d5ed848e34145e1d",
+                )
+                if username_valid and password_valid:
+                    st.session_state.authenticated = True
+                    st.session_state.user_role = "PT"
+                    st.session_state.page = "schedule"
+                    st.rerun()
+                else:
+                    st.error("Invalid clinical credentials. Access denied.")
+
+
+def sign_out():
+    """Lock the session and discard its in-memory clinical and login state."""
+    st.session_state.clear()
+    st.query_params.clear()
+    st.session_state.authenticated = False
+    st.session_state.page = "login"
 
 
 def render_schedule():
@@ -388,9 +410,21 @@ def render_aria_dashboard():
     )
 
 
-if st.session_state.page == "login":
+if not st.session_state.get("authenticated", False):
     render_login()
-elif st.session_state.page == "schedule":
+    st.stop()
+
+# The gate runs before URL routing or any schedule, EHR, or ARIA rendering.
+st.sidebar.button("Sign Out", key="gateway_sign_out", type="tertiary", on_click=sign_out)
+
+if "ed_vance" in st.query_params:
+    st.session_state.page = "legacy_ehr"
+    st.query_params.clear()
+
+if st.session_state.get("page") not in {"schedule", "legacy_ehr", "aria_dashboard"}:
+    st.session_state.page = "schedule"
+
+if st.session_state.page == "schedule":
     render_schedule()
 elif st.session_state.page == "legacy_ehr":
     render_legacy_ehr()
