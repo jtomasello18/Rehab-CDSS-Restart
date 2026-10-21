@@ -1,5 +1,5 @@
 node_modules/
-frontend/dist/
+.venv/
 __pycache__/
 .streamlit/
 *.py[cod]
@@ -9,6 +9,6 @@ knowledge_base/*.pdf
 knowledge_base/*.json
 knowledge_base/.*.tmp
 
-.venv
-node_modules
-.env
+# Streamlit Cloud serves the committed production bundle without running npm.
+!frontend/dist/
+!frontend/dist/**
