@@ -23,7 +23,7 @@ class ClinicalGatewayTests(unittest.TestCase):
         self.assertFalse(app.session_state.get('authenticated', False))
 
     def test_all_routes_require_authentication(self):
-        for page in ['login', 'schedule', 'legacy_ehr', 'aria_dashboard']:
+        for page in ['gateway', 'login', 'schedule', 'legacy_ehr', 'aria_dashboard']:
             with self.subTest(page=page):
                 app = self.app()
                 app.session_state['page'] = page
@@ -69,6 +69,36 @@ class ClinicalGatewayTests(unittest.TestCase):
         self.assertEqual(app.session_state['page'], 'schedule')
         self.assertTrue(app.session_state['authenticated'])
 
+    def test_gateway_sign_in_opens_schedule_without_a_second_login_form(self):
+        app = self.app().run()
+        app.text_input(key='gateway_username').set_value('ARIAprovider')
+        app.text_input(key='gateway_password').set_value('test-only-password')
+        # Exercise the successful-login route without storing the shared
+        # production password in the test repository.
+        with patch('hmac.compare_digest', side_effect=[True, True]):
+            app.button(key='gateway_sign_in').click().run()
+        self.assertFalse(app.exception)
+        self.assertTrue(app.session_state['authenticated'])
+        self.assertEqual(app.session_state['user_role'], 'PT')
+        self.assertEqual(app.session_state['page'], 'schedule')
+        self.assertFalse(app.text_input)
+        self.assertNotIn('Sign In', [button.label for button in app.button])
+        self.assertIn('ecw-grid', '\n'.join(item.value for item in app.markdown))
+
+    def test_old_authenticated_login_routes_go_straight_to_schedule_as_pt(self):
+        for page in ['login', 'ecw_login', 'gateway']:
+            with self.subTest(page=page):
+                app = self.app()
+                app.session_state['authenticated'] = True
+                app.session_state['user_role'] = 'Viewer'
+                app.session_state['page'] = page
+                app.run()
+                self.assertFalse(app.exception)
+                self.assertEqual(app.session_state['page'], 'schedule')
+                self.assertEqual(app.session_state['user_role'], 'PT')
+                self.assertFalse(app.text_input)
+                self.assertNotIn('Sign In', [button.label for button in app.button])
+
     def test_sign_out_clears_session_and_blocks_reentry(self):
         app = self.app()
         app.session_state['authenticated'] = True
@@ -79,7 +109,7 @@ class ClinicalGatewayTests(unittest.TestCase):
         app.run()
         app.button(key='gateway_sign_out').click().run()
         self.assert_locked(app)
-        self.assertEqual(app.session_state['page'], 'login')
+        self.assertEqual(app.session_state['page'], 'gateway')
         for key in ['user_role', 'cases', 'bridge_history']:
             self.assertNotIn(key, app.session_state)
         self.assertFalse(app.query_params)

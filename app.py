@@ -22,8 +22,8 @@ st.set_page_config(
 
 st.markdown(INTERACTION_STYLE, unsafe_allow_html=True)
 
-def render_login():
-    """Render the shared clinical access gate without exposing a patient view."""
+def render_secure_gateway():
+    """Render the app's only login form; success opens the provider schedule."""
     st.markdown(
         """
         <style>
@@ -77,7 +77,7 @@ def sign_out():
     st.session_state.clear()
     st.query_params.clear()
     st.session_state.authenticated = False
-    st.session_state.page = "login"
+    st.session_state.page = "gateway"
 
 
 def render_schedule():
@@ -411,8 +411,13 @@ def render_aria_dashboard():
 
 
 if not st.session_state.get("authenticated", False):
-    render_login()
+    st.session_state.page = "gateway"
+    render_secure_gateway()
     st.stop()
+
+# The shared Gateway identity is the PT provider throughout the eCW/ARIA
+# workflow, including sessions left on an obsolete internal login route.
+st.session_state.user_role = "PT"
 
 # The gate runs before URL routing or any schedule, EHR, or ARIA rendering.
 st.sidebar.button("Sign Out", key="gateway_sign_out", type="tertiary", on_click=sign_out)
