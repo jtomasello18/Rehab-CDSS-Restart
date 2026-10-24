@@ -16,40 +16,58 @@ function lines(text: string): string[] {
 function baseNote(note: SoapNote): SoapNote {
   return Object.fromEntries(sections.map(section => [section, withoutBlock(withoutBlock(note[section], AUDIT), CPT)])) as SoapNote;
 }
+function documented(text: string): string[] {
+  return lines(text).filter(line => !/^(?:not documented|a clinician must complete|no additional clinical conclusions)/i.test(line));
+}
+function positive(line: string, pattern: RegExp): boolean {
+  return pattern.test(line) && !/\b(?:no|without|denies|not present|not performed)\b/i.test(line);
+}
 
 /** Labeled, repeatable documentation support using this note's findings only. */
 export function addSkilledJustification(note: SoapNote, template: string): SoapNote {
   const base = baseNote(note);
   const discipline = template.startsWith('OT') ? 'occupational therapy' : template.startsWith('SLP') ? 'speech-language pathology'
     : template.startsWith('MD') ? 'physician assessment and multidisciplinary coordination' : 'physical therapy';
-  const findings = lines(base.objective).slice(0, 3).join(' ');
-  const safety = lines(base.subjective).filter(line => /near.falls?|drows|fatigue|sluggish/i.test(line)).slice(0, 2).join(' ');
-  const focus = template.startsWith('OT') ? 'task grading, upper-extremity positioning, assistance needs, and response to functional activity'
-    : template.startsWith('SLP') ? 'individualized language cueing, communication task progression, and fatigue-related performance'
-      : template.startsWith('MD') ? 'medication tolerability, neurological findings, and interdisciplinary safety concerns'
-        : 'gait mechanics, assistance and cueing needs, balance-related safety, and response to task progression';
+  const findings = documented(base.objective).slice(0, 3).join(' ');
+  const impressions = documented(base.assessment).join(' ');
+  const evidence = [...documented(base.objective), ...documented(base.assessment), ...documented(base.subjective)];
+  if (!evidence.length) return note;
+  const hasDeficits = evidence.some(line => positive(line, /\b(?:deficits?|limited|impair\w*|weakness|foot drop|near.falls?|fall risk|regression|assistance|sba|cga|aphasia|dysphagia|flexor synergy)\b/i));
+  const focus = template.startsWith('OT') ? 'graded functional task performance, upper-extremity motor control, and assistance needs'
+    : template.startsWith('SLP') ? 'individualized communication strategies, language-task progression, and activity tolerance'
+      : template.startsWith('MD') ? 'neurological status, medication tolerability, and interdisciplinary management'
+        : 'movement mechanics, task progression, and safe functional mobility';
+  const rationale = hasDeficits
+    ? `Skilled ${discipline} services are medically necessary to address the documented functional deficits. ${impressions}${findings ? ` Objective findings include: ${findings}` : ''} Licensed clinician judgment is required to individualize ${focus} in response to the documented limitations.`
+    : `The recorded encounter describes ${discipline} findings without a characterized functional limitation requiring skilled rehabilitation. ${impressions || findings}`;
   return {
     ...note,
-    assessment: block(note.assessment, AUDIT, `Documented findings supporting skilled ${discipline} review: ${findings}${safety ? ` Reported safety concerns: ${safety}` : ''}\nClinical rationale: The documented deficits require individualized assessment of ${focus}. The treating clinician must confirm the services actually provided and why they require professional skill; this draft does not establish coverage.`),
-    plan: block(note.plan, AUDIT, `Relate the documented plan to functional goals and record skilled decisions, assistance/cueing, patient response, and progression or modification at each visit. Confirm the plan of care, frequency, and duration from the encounter; do not infer treatment minutes or caregiver limitations.`),
+    assessment: block(note.assessment, AUDIT, `Skilled Justification (Medicare Part B): ${rationale}`),
   };
 }
 
 /** Coding descriptions are distinct from a claim of performed/billable services. */
 export function alignCpt(note: SoapNote, template: string): SoapNote {
-  const objective = baseNote(note).objective;
-  const gait = lines(objective).filter(line => /(?:ambulated|walked|gait training|overground gait)/i.test(line)).join(' ');
-  const neuro = lines(objective).filter(line => /(?:neuromuscular re-education|weight.shifts?|postural training|balance training|motor.control training)/i.test(line)).join(' ');
+  const base = baseNote(note);
+  const gaitPattern = /(?:ambulated|walked|gait training|overground gait|locomotor training)/i;
+  const neuroPattern = /(?:neuromuscular re-education|weight.shifts?|postural (?:control|training)|balance training|proprioceptive facilitation|motor.control training|synergy re-education)/i;
+  const gait = documented(base.objective).filter(line => positive(line, gaitPattern)).join(' ');
+  const neuro = documented(base.objective).filter(line => positive(line, neuroPattern)).join(' ');
+  const plannedGait = documented(base.plan).filter(line => positive(line, gaitPattern)).join(' ');
+  const plannedNeuro = documented(base.plan).filter(line => positive(line, neuroPattern)).join(' ');
   const inScope = template.startsWith('PT') || template.startsWith('OT');
   const content = inScope ? [
-    `• CPT 97116 — Gait Training: ${gait ? `Documented activity for clinician coding review: ${gait}` : 'No performed gait-training activity is explicitly documented in Objective.'}`,
-    `• CPT 97112 — Neuromuscular Re-education: ${neuro ? `Documented activity for clinician coding review: ${neuro}` : 'No performed neuromuscular re-education activity is explicitly documented in Objective. A balance score or motor-stage finding alone is not a performed intervention.'}`,
-    '• Time and units: Use only actual, code-specific skilled treatment minutes documented in this encounter and applicable payer rules. No minutes or units are assigned by this action.',
-  ].join('\n') : 'CPT 97116 describes gait training; CPT 97112 describes neuromuscular re-education. These codes are not assigned to this SLP/physician note. Select codes appropriate to the documented specialty services; no therapy activities, minutes, or units have been inferred.';
+    `• CPT 97116 (Gait Training): ${gait ? `Gait training involved the following mobility performance: ${gait}` : 'Gait training was not documented as a performed intervention during this encounter.'}`,
+    `• CPT 97112 (Neuromuscular Re-education): ${neuro ? `Neuromuscular treatment addressed motor control through the following activities: ${neuro}` : 'Neuromuscular re-education was not documented as a performed intervention during this encounter.'}`,
+  ].join('\n') : 'Gait training (CPT 97116) and neuromuscular re-education (CPT 97112) were not recorded as services provided in this SLP/physician encounter.';
+  const plan = inScope ? [
+    `• CPT 97116 (Gait Training): ${plannedGait ? `Planned locomotor treatment: ${plannedGait}` : 'Additional gait training is not specified in the recorded plan.'}`,
+    `• CPT 97112 (Neuromuscular Re-education): ${plannedNeuro ? `Planned motor-control treatment: ${plannedNeuro}` : 'Additional neuromuscular re-education is not specified in the recorded plan.'}`,
+  ].join('\n') : 'The recorded specialty plan does not include gait training (CPT 97116) or neuromuscular re-education (CPT 97112).';
   return {
     ...note,
     objective: block(note.objective, CPT, content),
-    plan: block(note.plan, CPT, 'Distinguish planned care from performed services. Verify activity descriptions, actual timed treatment, discipline, and payer requirements before assigning codes or units. This is documentation alignment, not billing verification.'),
+    plan: block(note.plan, CPT, plan),
   };
 }
 
@@ -67,13 +85,13 @@ export function condenseSoap(note: SoapNote): SoapNote {
       .replace(/Timed Up & Go \(TUG\)/g, 'TUG')
       .replace(/standby assistance \(SBA\)/g, 'SBA')
       .replace(/Kinematic deviations include /g, '')
-      .replace(/(?:change of |improved by )/gi, '')
+      .replace(/change of /gi, '').replace(/improved by /gi, 'improved ')
       .replace(/approximately /gi, '~')
       .replace(/\bseconds\b/g, 'sec'));
     const size = Math.max(1, Math.ceil(statements.length / 3));
     const bullets: string[] = [];
     for (let index = 0; index < statements.length; index += size) {
-      bullets.push(`• ${section[0].toUpperCase()}: ${statements.slice(index, index + size).join(' ')}`);
+      bullets.push(`• ${statements.slice(index, index + size).join(' ')}`);
     }
     return [section, bullets.join('\n')];
   })) as SoapNote;

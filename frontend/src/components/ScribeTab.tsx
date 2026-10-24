@@ -5,7 +5,6 @@ import ariaLogo from '../assets/aria-logo.svg';
 import '../styles/ChartingWorkspace.css';
 import { applyClinicalCorrections } from '../utils/clinicalCorrections';
 import { expandClinicalShorthand, type SoapNote } from '../utils/clinicalSoap';
-import { scribeTemplate, scribeTemplates } from '../data/scribeTemplates';
 import { addSkilledJustification, alignCpt, applyLocalInstruction, condenseSoap } from '../utils/soapRefinements';
 
 type DraftSource = 'claude' | 'local' | 'manual' | 'error';
@@ -13,31 +12,29 @@ type GenerationResult = { requestId: string; error: string | null; generated_at?
 type ScribeArgs = { role?: string; soap?: SoapNote; signed?: boolean; transcript?: string; generation?: GenerationResult; generated_at?: string; draft_source?: DraftSource; discipline?: string };
 
 const SOAP_SECTIONS = ['subjective', 'objective', 'assessment', 'plan'] as const;
-const DISCIPLINES = scribeTemplates.map(template => template.label);
+const DISCIPLINES = ['PT Skilled SOAP', 'OT Functional SOAP', 'SLP Cognitive-Linguistic SOAP', 'MD Neuro Follow-up'];
+const emptySoap = (): SoapNote => ({ subjective: '', objective: '', assessment: '', plan: '' });
 const isSoapNote = (value?: SoapNote): value is SoapNote => !!value && SOAP_SECTIONS.every(section => typeof value[section] === 'string' && value[section].trim().length > 0);
 const requestId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const responseToken = (args: ScribeArgs) => args.generation ? `${args.generation.requestId}:${args.generated_at ?? args.generation.generated_at ?? ''}` : args.generated_at ?? null;
-
-type TemplateDraft = { transcript: string; soap: SoapNote; source: DraftSource; signed: boolean; condensed: SoapNote | null };
 
 export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
   const canEdit = args.role === 'PT';
   const [mode, setMode] = useState<'ambient' | 'dictation'>('ambient');
   const [discipline, setDiscipline] = useState(args.discipline && DISCIPLINES.includes(args.discipline) ? args.discipline : DISCIPLINES[0]);
-  const initialTemplate = scribeTemplate(discipline);
-  const [rawInput, setRawInput] = useState(args.transcript || initialTemplate.shorthand);
-  const initialReviewedDraft = isSoapNote(args.soap) && (args.draft_source === 'local' || args.draft_source === 'manual');
-  const initialLocalDraft = args.transcript && (!isSoapNote(args.soap) || (args.generation?.error && !initialReviewedDraft)) ? expandClinicalShorthand(args.transcript, args.discipline) : null;
-  const [soap, setSoap] = useState<SoapNote>(initialLocalDraft ?? (isSoapNote(args.soap) ? args.soap : initialTemplate.soap));
-  const [draftSource, setDraftSource] = useState<DraftSource>(initialLocalDraft ? 'local' : args.draft_source ?? (args.generation ? 'claude' : 'manual'));
+  // Every newly opened workspace starts a fresh encounter. Server results are
+  // accepted only for a request initiated by this mounted editor.
+  const [rawInput, setRawInput] = useState('');
+  const [soap, setSoap] = useState<SoapNote>(emptySoap);
+  const [draftSource, setDraftSource] = useState<DraftSource>('manual');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState<string | null>(initialLocalDraft || initialReviewedDraft ? null : args.generation?.error ?? null);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
   const [captureStatus, setCaptureStatus] = useState('Ready for a clinician-entered transcript or shorthand.');
   const [smartEditPrompt, setSmartEditPrompt] = useState('');
   const [refinementStatus, setRefinementStatus] = useState('');
   const [condensedSnapshot, setCondensedSnapshot] = useState<SoapNote | null>(null);
-  const [signed, setSigned] = useState(args.signed === true);
+  const [signed, setSigned] = useState(false);
   const recognitionRef = useRef<any>(null);
   const pendingRequestRef = useRef<string | null>(null);
   const appliedResponseRef = useRef<string | null>(responseToken(args));
@@ -46,13 +43,17 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
   const fallbackAppliedRef = useRef<string | null>(null);
   const draftEditedRef = useRef(false);
   const retiredRequestsRef = useRef(new Set<string>());
-  const templateDraftsRef = useRef(new Map<string, TemplateDraft>());
   const pendingKindRef = useRef<'generation' | 'refinement'>('generation');
-  const isSample = rawInput === scribeTemplate(discipline).shorthand;
   const hasNote = SOAP_SECTIONS.every(section => soap[section].trim().length > 0);
   const canRefine = canEdit && !isGenerating && !generationError && hasNote;
 
   useEffect(() => { Streamlit.setFrameHeight(); });
+  useEffect(() => {
+    if (canEdit) {
+      try { Streamlit.setComponentValue({ type: 'reset_scribe', requestId: requestId(), discipline }); }
+      catch { /* Opening a fresh editor does not depend on server availability. */ }
+    }
+  }, []);
   const clearGenerationTimer = () => {
     if (generationTimerRef.current !== null) clearTimeout(generationTimerRef.current);
     generationTimerRef.current = null;
@@ -77,7 +78,7 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     const result = args.generation ?? (args.generated_at ? { requestId: pendingRequestRef.current ?? 'timestamp-result', error: null } : null);
     if (!result || !token || token === appliedResponseRef.current) return;
     if (retiredRequestsRef.current.has(result.requestId)) return;
-    if (pendingRequestRef.current && result.requestId !== pendingRequestRef.current) return;
+    if (!pendingRequestRef.current || result.requestId !== pendingRequestRef.current) return;
     appliedResponseRef.current = token;
     clearGenerationTimer();
     pendingRequestRef.current = null;
@@ -122,20 +123,20 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     clearGenerationTimer();
     if (pendingRequestRef.current) retiredRequestsRef.current.add(pendingRequestRef.current);
     pendingRequestRef.current = null;
-    templateDraftsRef.current.set(discipline, { transcript: rawInput, soap, source: draftSource, signed, condensed: condensedSnapshot });
-    const saved = templateDraftsRef.current.get(label);
-    const sample = scribeTemplate(label);
     setDiscipline(label);
-    setRawInput(saved?.transcript ?? sample.shorthand);
-    setSoap(saved?.soap ?? sample.soap);
-    setDraftSource(saved?.source ?? 'manual');
-    setSigned(saved?.signed ?? false);
-    setCondensedSnapshot(saved?.condensed ?? null);
+    setRawInput('');
+    setSoap(emptySoap());
+    setDraftSource('manual');
+    setSigned(false);
+    setCondensedSnapshot(null);
     setGenerationError(null);
     setRefinementStatus('');
     setSmartEditPrompt('');
     draftEditedRef.current = true;
-    setCaptureStatus(saved ? 'Specialty draft restored with your edits.' : 'Ed Vance specialty sample loaded. Review and replace with encounter findings.');
+    setCaptureStatus('New specialty encounter ready for your notes or dictation.');
+    try {
+      Streamlit.setComponentValue({ type: 'reset_scribe', requestId: requestId(), discipline: label });
+    } catch { /* The editor is already cleared locally if the connection drops. */ }
   };
 
   const startVoiceDictation = () => {
@@ -183,7 +184,7 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     if (pendingRequestRef.current) retiredRequestsRef.current.add(pendingRequestRef.current);
     pendingRequestRef.current = id;
     pendingKindRef.current = 'generation';
-    localDraftRef.current = { requestId: id, soap: isSample ? scribeTemplate(discipline).soap : expandClinicalShorthand(corrected, discipline) };
+    localDraftRef.current = { requestId: id, soap: expandClinicalShorthand(corrected, discipline) };
     fallbackAppliedRef.current = null;
     draftEditedRef.current = false;
     setIsGenerating(true);
@@ -215,7 +216,7 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
       const base = condensedSnapshot ?? soap;
       setSoap(kind === 'audit' ? addSkilledJustification(base, discipline) : alignCpt(base, discipline));
       setCondensedSnapshot(null);
-      setRefinementStatus(kind === 'audit' ? 'Skilled-necessity sections updated in Assessment and Plan.' : 'CPT descriptions updated in Objective and Plan. No treatment time or units inferred.');
+      setRefinementStatus(kind === 'audit' ? 'Clinical skilled justification updated in Assessment.' : 'Clinical CPT alignment updated in Objective and Plan.');
     }
     setSigned(false);
   };
@@ -284,21 +285,20 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
             <button type="button" aria-pressed={mode === 'dictation'} onClick={() => setMode('dictation')} className={`scribe-mode ${mode === 'dictation' ? 'is-active' : ''}`}>Direct Clinical Dictation</button>
           </div>
           <div className="rounded-lg border border-slate-300 bg-slate-50 p-4 space-y-3">
-            {isSample && <p className="text-xs font-medium text-[#145b6e]">Ed Vance specialty sample · Synthetic case</p>}
             <div className="scribe-capture-toolbar">
               <button type="button" onClick={isListening ? stopVoiceDictation : startVoiceDictation} disabled={!canEdit || isGenerating} className="scribe-button scribe-button-secondary">
                 {isListening ? <MicOff className="h-4 w-4 shrink-0" aria-hidden="true" /> : <Mic className="h-4 w-4 shrink-0" aria-hidden="true" />}{isListening ? 'Stop Listening' : 'Start Voice Dictation'}
               </button>
               <button type="button" onClick={generateSoap} disabled={!canEdit || isGenerating || !rawInput.trim()} className="scribe-button scribe-button-primary">{isGenerating ? pendingKindRef.current === 'refinement' ? 'Applying Refinement…' : 'Generating SOAP Note…' : 'Generate Structured SOAP Note'}</button>
             </div>
-            <textarea aria-label="Encounter transcript" value={rawInput} onChange={event => { draftEditedRef.current = true; setRawInput(event.target.value); }} onBlur={event => setRawInput(applyClinicalCorrections(event.target.value))} disabled={!canEdit || isGenerating} placeholder="Speak or enter clinical shorthand here…" className="w-full min-h-[90px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" />
+            <textarea aria-label="Encounter transcript" value={rawInput} onChange={event => { draftEditedRef.current = true; setRawInput(event.target.value); setSigned(false); }} onBlur={event => setRawInput(applyClinicalCorrections(event.target.value))} disabled={!canEdit || isGenerating} placeholder="Type clinical shorthand, free-text notes, or dictate the encounter here (just like Heidi AI)..." className="w-full min-h-[90px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" />
             <p role="status" className="text-xs text-slate-500">{mode === 'ambient' ? 'Ambient capture is ready for the encounter.' : 'Direct dictation is ready for clinician-entered narration.'} {captureStatus}</p>
             {generationError && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{generationError}</p>}
           </div>
         </section>
 
         <section className="bg-white border border-slate-300 rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-300 bg-slate-50"><h2 className="font-semibold text-slate-800">Editable SOAP Workspace</h2><p className="text-xs text-slate-500 mt-1">Review every field before signing. Unmeasured tests and scores are never inferred.</p>{hasNote && <p className="mt-1 text-xs font-medium text-[#145b6e]">{draftSource === 'local' ? 'Local shorthand draft · Clinician review required' : draftSource === 'claude' ? 'Claude-generated draft · Clinician review required' : isSample ? 'Synthetic case draft · Clinician review required' : 'Clinician-edited documentation'}</p>}</div>
+          <div className="px-5 py-4 border-b border-slate-300 bg-slate-50"><h2 className="font-semibold text-slate-800">Editable SOAP Workspace</h2><p className="text-xs text-slate-500 mt-1">Review every field before signing. Unmeasured tests and scores are never inferred.</p>{hasNote && <p className="mt-1 text-xs font-medium text-[#145b6e]">{draftSource === 'local' ? 'Local shorthand draft · Clinician review required' : draftSource === 'claude' ? 'Claude-generated draft · Clinician review required' : 'Clinician-edited documentation'}</p>}</div>
           <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
             {SOAP_SECTIONS.map(section => (
               <label key={section} className="space-y-2"><span className="block text-sm font-semibold text-slate-700 capitalize">{section}</span><textarea aria-label={section} value={soap[section]} onChange={event => updateSoap(section, event.target.value)} disabled={!canEdit || isGenerating} placeholder="Generate a SOAP draft or enter clinician-reviewed documentation." className="w-full min-h-[170px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" /></label>

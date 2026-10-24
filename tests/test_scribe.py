@@ -158,6 +158,36 @@ class ScribeBridgeTests(unittest.TestCase):
         self.assertTrue(args['generated_at'])
         self.assertFalse(app.session_state['charting_signed'])
 
+    def test_new_specialty_clears_previous_encounter_without_an_api_call(self):
+        app = self.app()
+        app.session_state['charting_soap_note'] = SOAP
+        app.session_state['charting_transcript'] = TRANSCRIPT
+        app.session_state['charting_signed'] = True
+        app.session_state['charting_generation'] = {'requestId': 'old', 'error': None}
+        app.session_state['charting_generated_at'] = 'old'
+        app.session_state['scribe_event'] = {'type': 'reset_scribe', 'requestId': 'reset-ot', 'discipline': 'OT Functional SOAP'}
+        with patch.object(scribe, 'generate_soap') as generate, patch.object(scribe, 'refine_soap') as refine:
+            app.run()
+            app.run()
+        self.assertFalse(app.exception)
+        generate.assert_not_called()
+        refine.assert_not_called()
+        args = app.session_state['last_scribe_args']
+        self.assertEqual(args['soap'], {field: '' for field in SOAP})
+        self.assertEqual(args['transcript'], '')
+        self.assertEqual(args['discipline'], 'OT Functional SOAP')
+        self.assertIsNone(args['generation'])
+        self.assertIsNone(args['generated_at'])
+        self.assertFalse(args['signed'])
+
+    def test_viewer_cannot_reset_the_provider_encounter(self):
+        app = self.app('Viewer')
+        app.session_state['charting_soap_note'] = SOAP
+        app.session_state['scribe_event'] = {'type': 'reset_scribe', 'requestId': 'unauthorized-reset', 'discipline': 'OT Functional SOAP'}
+        app.run()
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state['charting_soap_note'], SOAP)
+
     def test_failed_draft_can_retry_without_repeating_the_failed_request(self):
         app = self.app()
         app.session_state['scribe_event'] = self.event()

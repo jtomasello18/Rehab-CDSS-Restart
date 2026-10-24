@@ -25,6 +25,10 @@ selected documentation template.
 Use natural clinical grammar, never phrases such as 'the patient reports feels'.
 Avoid repeating 'the patient reports' in every sentence. Use scannable Objective
 bullets and a numbered Plan when supported by the source.
+Accept labeled S/O/A/P shorthand, mixed free-text sentences, comma-separated
+fragments and bullets. Expand clinical abbreviations in context (patient versus
+physical therapy, assistance levels, tests, laterality, medication frequency).
+Organize the actual encounter; never substitute a sample patient or prior case.
 
 Use ONLY the supplied encounter transcript. Expand standard clinical shorthand
 without changing its meaning. Separate patient-reported information (subjective)
@@ -114,6 +118,10 @@ to its wording, organization or emphasis. Preserve clinical values, negation,
 medication doses, attribution and uncertainty. Do not append the instruction as
 note content. Do not invent treatment activities, minutes, units or coverage
 claims, even if requested. Clearly distinguish planned from performed services.
+Write finished clinical documentation in the clinician's voice, never prompt
+rules, coding checklists or instructions to the clinician. A skilled-necessity
+paragraph must be specific to supported functional limitations. Do not claim
+caregiver inability or performed cueing that the source does not document.
 Return all four updated SOAP strings using the same JSON schema.
 """)
 

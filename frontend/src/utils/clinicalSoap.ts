@@ -11,7 +11,7 @@ const sectionNames: Record<string, Section> = {
 
 export function expandClinicalAbbreviations(text: string): string {
   let value = applyClinicalCorrections(text)
-    .replace(/\bpt(?=\s+(?:reports|states|denies|feels|endorses|has|is|presents|wants|describes|experiences|goals?))/gi, 'patient')
+    .replace(/\bpt(?=\s+(?:reports|states|denies|feels|endorses|has|is|presents|wants|describes|experiences|walked|ambulated|tolerated|unable|goals?|\d{2,3}[MF]\b))/gi, 'patient')
     .replace(/\bw\/o\s*/gi, 'without ').replace(/\bw\/\s*/gi, 'with ')
     .replace(/\bs\/p\s*/gi, 'following ').replace(/\bc\/o\s*/gi, 'reports ')
     .replace(/\bd\/t\s*/gi, 'associated with ')
@@ -22,7 +22,10 @@ export function expandClinicalAbbreviations(text: string): string {
     .replace(/\b(\d+)\s*(?:yo|y\/o)\s*(?:female|f)\b/gi, '$1-year-old female')
     .replace(/\b(\d{2,3})M\b/g, '$1-year-old male')
     .replace(/\b(\d{2,3})F\b/g, '$1-year-old female')
-    .replace(/\b(?:L|left)\s+MCA\b/gi, 'left middle cerebral artery (MCA)');
+    .replace(/\b(?:L|left)\s+MCA\b/gi, 'left middle cerebral artery (MCA)')
+    .replace(/\bhemiwalker\b/gi, 'hemi-walker')
+    .replace(/\br\s*\/\s*l\b/gi, 'right/left')
+    .replace(/\bue\s*\/\s*le\b/gi, 'upper/lower extremities');
   const expansions: [RegExp, string][] = [
     [/\b10[ -]?MWT\b/gi, '10-Meter Walk Test (10MWT)'],
     [/\bBBS\b/gi, 'Berg Balance Scale (BBS)'],
@@ -36,15 +39,19 @@ export function expandClinicalAbbreviations(text: string): string {
     [/\bMAS\b/gi, 'Modified Ashworth Scale (MAS)'],
     [/\bAFO\b/gi, 'ankle-foot orthosis (AFO)'],
     [/\bTID\b/gi, 'three times daily (TID)'],
+    [/\bBID\b/gi, 'twice daily (BID)'],
     [/\bR\s*LE\b/gi, 'right lower extremity'], [/\bL\s*LE\b/gi, 'left lower extremity'],
     [/\bR\s*UE\b/gi, 'right upper extremity'], [/\bL\s*UE\b/gi, 'left upper extremity'],
-    [/\bR\s+(?=toe|foot|ankle|elbow|heel|hip|shoulder|calf|knee|hand|arm|leg|flexor)/gi, 'right '],
-    [/\bL\s+(?=toe|foot|ankle|elbow|heel|hip|shoulder|calf|knee|hand|arm|leg|flexor)/gi, 'left '],
+    [/\bR\s+(?=toe|foot|ankle|elbow|heel|hip|shoulder|calf|knee|hand|arm|leg|flexor|wrist|grip)/gi, 'right '],
+    [/\bL\s+(?=toe|foot|ankle|elbow|heel|hip|shoulder|calf|knee|hand|arm|leg|flexor|wrist|grip)/gi, 'left '],
+    [/\bUE\b/gi, 'upper extremity'], [/\bLE\b/gi, 'lower extremity'],
     [/\bPT\b/gi, 'physical therapy'], [/\bOT\b/gi, 'occupational therapy'],
     [/\bSLP\b/gi, 'speech-language pathology'], [/\bMD\b/gi, 'physician'],
     [/\bIRF\b/gi, 'inpatient rehabilitation'], [/\bGr\s*(?=\d)/gi, 'Grade '],
     [/\bamb\b/gi, 'ambulated'], [/\bDF\b/g, 'dorsiflexion'],
-    [/\bHEP\b/gi, 'home exercise program'], [/\bROM\b/g, 'range of motion'],
+    [/\bHEP\b/gi, 'home exercise program'], [/\bROM\b/gi, 'range of motion'],
+    [/\bMMT\b/gi, 'manual muscle testing'], [/\bWFL\b/gi, 'within functional limits'],
+    [/\bWNL\b/gi, 'within normal limits'],
     [/\btx\b/gi, 'treatment'], [/\beval\b/gi, 'evaluation'],
     [/\bStg\b/gi, 'Stage'],
     [/\bf\/u\b/gi, 'follow-up'], [/\bfxn\b/gi, 'function'],
@@ -67,7 +74,7 @@ export function expandClinicalAbbreviations(text: string): string {
 }
 
 function sentences(text: string): string[] {
-  return text.split(/\n+|;\s*|(?<=[.!?])\s+(?=[A-Za-z])/)
+  return text.split(/\n+|[;•]\s*|(?<=[.!?])\s+(?=[A-Za-z])/)
     .map(line => line.replace(/^\s*(?:[•*-]|\d+[.)])\s*/, '').trim()).filter(Boolean);
 }
 function finishSentence(text: string): string {
@@ -101,26 +108,49 @@ function subjectiveParagraph(lines: string[]): string {
   }).join(' ');
 }
 
+function clinicalClauses(text: string): string[] {
+  return sentences(text).flatMap(sentence => sentence.split(/,\s*(?!\d{3}\b)|\s+and\s+(?=(?:plan|recommend|refer|request|\d+\s*x\s*\/\s*wk)\b)/i))
+    .map(clause => clause.trim()).filter(Boolean);
+}
+
+function classify(clause: string, previous: Section = 'subjective'): Section {
+  // Intent precedes measurements: a goal to walk 100 ft is not a measured result.
+  if (/\b(?:plan|request|refer|initiate|continue|next visit|will|recommend|needs? (?:an? )?afo|\d+\s*x\s*\/\s*wk|visits? per week)\b/i.test(clause)) return 'plan';
+  if (/\b(?:assessment|impression|regress(?:ed|ion|ing)?|progress(?:ed|ion|ing)?|improv(?:ed|ement|ing)|fall risk|rehab(?:ilitation)? potential|consistent with|limited .{0,35}function)\b/i.test(clause)) return 'assessment';
+  if (/\b(?:reports?|states?|denies|c\/o|near[- ]falls?|drowsy|drowsiness|sluggish|tired|fatigue|pain|goals?|wants|history|hx|s\/p|post[- ]|baclofen|medications?)\b|\b\d{2,3}(?:M|F)\b/i.test(clause)) return 'subjective';
+  if (/\b(?:walked|amb(?:ulated)?|gait|hemi.?walker|sba|cga|min\s*a|mod\s*a|max\s*a|bbs|10[ -]?mwt|tug|fma(?:-ue)?|wab(?:-r)?|bnt|mas|rom|mmt|wfl|wnl|strength|tone|observed|measured|foot drop|heel strike|naming|comprehension|\d+\s*(?:ft|feet|m\/s|degrees|lbs?|bpm|mmhg))\b|\b\d+(?:\.\d+)?\s*\/\s*(?:5|56|66|100)\b/i.test(clause)) return 'objective';
+  return previous;
+}
+
 /** Never backfill a vignette's demographics, scores, dose changes or care plan. */
 export function expandClinicalShorthand(transcript: string, template = 'PT Skilled SOAP'): SoapNote {
   const source = applyClinicalCorrections(transcript).trim();
   const groups: Record<Section, string[]> = { subjective: [], objective: [], assessment: [], plan: [] };
+  if (!source) return { subjective: '', objective: '', assessment: '', plan: '' };
+  const classifyText = (text: string) => {
+    let previous: Section = 'subjective';
+    for (const clause of clinicalClauses(text)) {
+      const section = classify(clause, previous);
+      groups[section].push(clause.replace(/^(?:plan|assessment|impression)\s*:?\s+/i, ''));
+      previous = section;
+    }
+  };
   const markers = [...source.matchAll(/(?:^|\s)(subjective|objective|assessment|plan|s|o|a|p)\s*:\s*/gi)];
   if (markers.length) {
     const prefix = source.slice(0, markers[0].index).trim();
-    if (prefix) groups.objective.push(prefix);
+    if (prefix) classifyText(prefix);
     markers.forEach((marker, index) => {
       const start = marker.index! + marker[0].length;
       const end = markers[index + 1]?.index ?? source.length;
       groups[sectionNames[marker[1].toLowerCase()]].push(...sentences(source.slice(start, end)));
     });
   } else {
-    for (const line of sentences(source)) {
-      const section: Section = /\b(?:plan|request|refer|initiate|continue|next visit|will|recommend|\d+x\/wk)\b/i.test(line) ? 'plan'
-        : /\b(?:reports?|states?|denies|c\/o|near[- ]falls?|drowsy|drowsiness|sluggish|goals?|wants)\b/i.test(line) ? 'subjective'
-        : /\b(?:assessment|impression|consistent with)\b/i.test(line) ? 'assessment' : 'objective';
-      groups[section].push(line);
-    }
+    classifyText(source);
+  }
+  if (!groups.assessment.length && groups.subjective.some(line => /\bnear[- ]falls?\b/i.test(line)
+      && !/\b(?:no|denies|without|zero|0)(?:\s+\w+){0,2}\s+near[- ]falls?\b/i.test(line))
+      && groups.objective.some(line => /walk|gait|10mwt|bbs|balance/i.test(line))) {
+    groups.assessment.push('Reported near-falls alongside the documented mobility findings indicate a walking safety concern');
   }
   const discipline = template.startsWith('OT') ? 'occupational therapy' : template.startsWith('SLP') ? 'speech-language pathology'
     : template.startsWith('MD') ? 'medical' : 'physical therapy';

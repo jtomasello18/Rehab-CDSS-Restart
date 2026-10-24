@@ -746,6 +746,19 @@ def render_scribe(figma_component, role="Viewer"):
     request_id = event.get("requestId")
     if not isinstance(request_id, str) or not request_id or len(request_id) > 128:
         return
+    if event.get("type") == "reset_scribe":
+        if request_id == st.session_state.get("charting_last_request"):
+            return
+        st.session_state.charting_last_request = request_id
+        st.session_state.charting_transcript = ""
+        st.session_state.charting_soap_note = {field: "" for field in SOAP_FIELDS}
+        st.session_state.charting_signed = False
+        st.session_state.charting_generation = None
+        st.session_state.charting_generated_at = None
+        st.session_state.charting_draft_source = "manual"
+        discipline = event.get("discipline")
+        st.session_state.charting_discipline = discipline if isinstance(discipline, str) and discipline in TEMPLATES else "PT Skilled SOAP"
+        return
     if event.get("type") in {"generate_soap", "refine_soap"}:
         if request_id == st.session_state.get("charting_last_request"):
             return

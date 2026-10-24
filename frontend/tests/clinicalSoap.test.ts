@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { expandClinicalAbbreviations, expandClinicalShorthand } from '../src/utils/clinicalSoap';
-import { scribeTemplates } from '../src/data/scribeTemplates';
 import { addSkilledJustification, alignCpt, applyLocalInstruction, condenseSoap } from '../src/utils/soapRefinements';
 const source = `s: pt reports 2 near-falls catching R toe on rug; drowsy after 10/06 Baclofen increase to 10mg TID; goal mailbox.
 o: amb 50ft w/ hemi-walker & SBA; 10mwt 0.35 m/s from 0.48 m/s at IRF discharge; bbs 38/56 from 42/56; tug 21.4s; R ankle MAS Gr 1+; R LE Brunnstrom Stg 4.
@@ -42,12 +41,18 @@ assert.doesNotMatch(grammar.subjective, /reports feels|reports denies|denie\b|ph
 const expanded = expandClinicalAbbreviations('BBS 38/56; WAB-R 71.8; AFO; 10mg TID');
 assert.equal(expandClinicalAbbreviations(expanded), expanded, 'Repeated formatting must not expand an acronym inside its own label');
 
-assert.equal(scribeTemplates.length, 4);
-for (const template of scribeTemplates) {
-  assert.deepEqual(Object.keys(template.soap), ['subjective', 'objective', 'assessment', 'plan']);
+const fixtures = [
+  { label: 'PT Skilled SOAP', soap },
+  { label: 'OT Functional SOAP', soap: custom },
+  { label: 'SLP Cognitive-Linguistic SOAP', soap: slp },
+  { label: 'MD Neuro Follow-up', soap: expandClinicalShorthand('S: Fatigue on medication O: BP 122/78; normal strength A: Medication tolerance concern P: Review medications', 'MD Neuro Follow-up') },
+];
+for (const template of fixtures) {
   const audit = addSkilledJustification(template.soap, template.label);
   assert.match(audit.assessment, /\[MEDICARE PART B SKILLED NECESSITY\]/);
-  assert.match(audit.plan, /\[MEDICARE PART B SKILLED NECESSITY\]/);
+  assert.equal(audit.plan, template.soap.plan, 'Justification updates Assessment, without adding documentation rules to Plan');
+  assert.match(audit.assessment, /Skilled Justification \(Medicare Part B\):/);
+  assert.doesNotMatch(JSON.stringify(audit), /The treating clinician must|do not infer|Confirm the plan|Relate the documented plan|record skilled decisions/i);
   assert.deepEqual(addSkilledJustification(audit, template.label), audit, 'Repeated click updates the section, without duplicates');
   const cpt = alignCpt(audit, template.label);
   assert.match(cpt.objective, /\[CPT BILLING CODE ALIGNMENT\]/);
@@ -59,17 +64,51 @@ for (const template of scribeTemplates) {
   for (const section of Object.keys(condensed) as (keyof typeof condensed)[]) {
     const bullets = condensed[section].split('\n');
     assert.ok(bullets.length <= 3);
-    assert.ok(bullets.every(bullet => bullet.startsWith(`• ${section[0].toUpperCase()}: `)));
+    assert.ok(bullets.every(bullet => bullet.startsWith('• ')));
     const sourceWithoutListNumbers = template.soap[section].replace(/^\d+\.\s/gm, '');
     for (const number of sourceWithoutListNumbers.match(/\d+(?:\.\d+)?/g) ?? []) assert.ok(condensed[section].includes(number), `Preserve measured value ${number}`);
   }
 }
-const pt = scribeTemplates[0].soap;
-assert.match(alignCpt(pt, 'PT Skilled SOAP').objective, /No performed neuromuscular re-education activity/);
-assert.match(alignCpt(scribeTemplates[2].soap, scribeTemplates[2].label).objective, /not assigned to this SLP\/physician note/);
+const pt = soap;
+assert.match(alignCpt(pt, 'PT Skilled SOAP').objective, /Neuromuscular re-education was not documented as a performed intervention/);
+assert.match(alignCpt(slp, 'SLP Cognitive-Linguistic SOAP').objective, /not recorded as services provided in this SLP\/physician encounter/);
 assert.match(applyLocalInstruction(pt, 'Replace "mailbox" with "front door"', 'PT Skilled SOAP')!.subjective, /front door/);
 assert.doesNotMatch(applyLocalInstruction(pt, 'Replace "mailbox" with "front door"', 'PT Skilled SOAP')!.subjective, /mailbox/);
 assert.equal(applyLocalInstruction(pt, 'Emphasize the medication correlation for the attending', 'PT Skilled SOAP'), null, 'Open-ended edits require Claude, not literal request insertion');
 const customAudit = addSkilledJustification(custom, 'OT Functional SOAP');
 assert.doesNotMatch(JSON.stringify(customAudit), /Baclofen|38\/56|67-year-old|near-falls|mailbox/);
 console.log('Specialty and refinement checks passed: grammar, repeatable blocks, coding fidelity, concise bullets and custom commands.');
+
+const freeText = expandClinicalShorthand('walked 50ft hemiwalker, 2 near falls, bbs 38/56, 10mwt 0.35, baclofen 10mg tid making him tired, plan gait training 2x/wk and afo');
+assert.match(freeText.subjective, /2 near falls/);
+assert.match(freeText.subjective, /baclofen 10 mg three times daily \(TID\) making him tired/i);
+assert.match(freeText.objective, /Walked 50 feet hemi-walker/);
+assert.match(freeText.objective, /Berg Balance Scale \(BBS\): 38\/56/);
+assert.match(freeText.objective, /10-Meter Walk Test \(10MWT\): 0.35/);
+assert.match(freeText.assessment, /walking safety concern/);
+assert.match(freeText.plan, /Gait training 2 visits per week and ankle-foot orthosis/);
+assert.doesNotMatch(freeText.subjective, /38\/56|0\.35|50 feet/);
+assert.doesNotMatch(freeText.plan, /10 mg|38\/56/);
+assert.doesNotMatch(JSON.stringify(freeText), /67-year-old|mailbox|10\/06|42\/56|taper/i);
+assert.doesNotMatch(expandClinicalShorthand('walked 90ft, denies near falls').assessment, /walking safety concern/);
+assert.doesNotMatch(expandClinicalShorthand('walked 90ft, 0 near falls').assessment, /walking safety concern/);
+assert.deepEqual(expandClinicalShorthand(''), { subjective: '', objective: '', assessment: '', plan: '' });
+
+const abbreviations = expandClinicalAbbreviations('pt feels tired; wk 2; sba; min a; mod a; max a; bbs; 10mwt; tug; mas; r ue; l le; r/l; ue/le; bid; tid; afo; rom; mmt; wfl; wnl');
+for (const expected of ['patient feels tired','week 2','standby assistance','minimal assistance','moderate assistance','maximal assistance','Berg Balance Scale','10-Meter Walk Test','Timed Up and Go','Modified Ashworth Scale','right upper extremity','left lower extremity','right/left','upper/lower extremities','twice daily','three times daily','ankle-foot orthosis','range of motion','manual muscle testing','within functional limits','within normal limits']) assert.ok(abbreviations.includes(expected), expected);
+const mixed = expandClinicalShorthand('Patient reports shoulder pain.\n• R UE ROM 80 degrees; MMT 3/5\n• Improving overhead function\n• Continue OT 1x/wk and home exercises', 'OT Functional SOAP');
+assert.match(mixed.subjective, /shoulder pain/);
+assert.match(mixed.objective, /manual muscle testing 3\/5/i);
+assert.match(mixed.assessment, /Improving overhead function/);
+assert.match(mixed.plan, /Continue occupational therapy 1 visits per week/);
+
+const treatment = expandClinicalShorthand('S: Trouble walking O: Walked 80ft w/ CGA; dynamic weight-shifts with tactile cueing for postural control A: Impaired balance P: Continue overground gait training and balance training twice weekly');
+const codedTreatment = alignCpt(treatment, 'PT Skilled SOAP');
+assert.match(codedTreatment.objective, /CPT 97116 \(Gait Training\): Gait training involved/);
+assert.match(codedTreatment.objective, /CPT 97112 \(Neuromuscular Re-education\): Neuromuscular treatment/);
+assert.match(codedTreatment.plan, /Planned locomotor treatment/);
+assert.match(codedTreatment.plan, /Planned motor-control treatment/);
+assert.doesNotMatch(JSON.stringify(codedTreatment), /Verify|Use only|before assigning|Documented activity for clinician coding review|Do not infer|Time and units:/);
+const unrelated = expandClinicalShorthand('S: No pain O: ROM WNL; independent mobility A: No functional deficits P: Discharge');
+assert.doesNotMatch(addSkilledJustification(unrelated, 'PT Skilled SOAP').assessment, /services are medically necessary/);
+console.log('Organic input checks passed: mixed free-text, labeled notes, all requested abbreviations, source fidelity and clinical refinement prose.');
