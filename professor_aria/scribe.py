@@ -3,7 +3,7 @@
 import json
 import os
 
-from anthropic import Anthropic, APIError
+from anthropic import Anthropic, APIError, APITimeoutError
 from dotenv import load_dotenv
 
 from .json_utils import extract_json_object
@@ -55,16 +55,16 @@ def parse_soap_response(text: str) -> dict:
 
 
 def _client():
-    key = os.getenv('ANTHROPIC_API_KEY', '').strip()
-    if not key:
-        try:
-            import streamlit as st
-            key = str(st.secrets.get('ANTHROPIC_API_KEY', '')).strip()
-        except Exception:
-            key = ''
+    environment_key = os.environ.get('ANTHROPIC_API_KEY', '').strip()
+    try:
+        import streamlit as st
+        cloud_key = str(st.secrets.get('ANTHROPIC_API_KEY', '')).strip()
+    except Exception:
+        cloud_key = ''
+    key = cloud_key or environment_key
     if not key or key == 'your_actual_api_key_here':
         raise ValueError('Configure ANTHROPIC_API_KEY in .env or Streamlit secrets to generate SOAP notes.')
-    return Anthropic(api_key=key, timeout=45.0, max_retries=1)
+    return Anthropic(api_key=key, timeout=12.0, max_retries=0)
 
 
 def _failure(message: str) -> dict:
@@ -87,6 +87,7 @@ def generate_soap(transcript: str, template: str = 'PT Skilled SOAP') -> dict:
             response = client.messages.create(
                 model=os.getenv('ARIA_SCRIBE_MODEL', 'claude-sonnet-5'),
                 max_tokens=2400,
+                timeout=12.0,
                 system=SYSTEM_PROMPT,
                 messages=[{'role': 'user', 'content': json.dumps({
                     'documentation_template': TEMPLATES[template],
@@ -97,6 +98,8 @@ def generate_soap(transcript: str, template: str = 'PT Skilled SOAP') -> dict:
             return _failure('Claude returned an incomplete draft. Please try again.')
         text = '\n'.join(block.text for block in response.content if getattr(block, 'type', None) == 'text')
         return {'soap': parse_soap_response(text), 'error': None}
+    except APITimeoutError:
+        return _failure('Claude timed out. Review the local draft or retry.')
     except APIError:
         # SDK exception text can contain request details. Keep it out of the UI.
         return _failure('The Claude service could not complete the request. Check API access and retry.')

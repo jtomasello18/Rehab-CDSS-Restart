@@ -4,55 +4,99 @@ import { Streamlit } from 'streamlit-component-lib';
 import ariaLogo from '../assets/aria-logo.svg';
 import '../styles/ChartingWorkspace.css';
 import { applyClinicalCorrections } from '../utils/clinicalCorrections';
+import { expandClinicalShorthand, type SoapNote } from '../utils/clinicalSoap';
 
-type SoapNote = { subjective: string; objective: string; assessment: string; plan: string };
-type GenerationResult = { requestId: string; error: string | null };
-type ScribeArgs = { role?: string; soap?: SoapNote; signed?: boolean; transcript?: string; generation?: GenerationResult };
+type DraftSource = 'claude' | 'local' | 'manual' | 'error';
+type GenerationResult = { requestId: string; error: string | null; generated_at?: string };
+type ScribeArgs = { role?: string; soap?: SoapNote; signed?: boolean; transcript?: string; generation?: GenerationResult; generated_at?: string; draft_source?: DraftSource; discipline?: string };
 
 const QUICK_SHORTHAND = 'Walked 50ft w/ hemi-walker & SBA, R foot catching on swing, 2 near-falls, cued dorsiflexion, need AFO';
 const SOAP_SECTIONS = ['subjective', 'objective', 'assessment', 'plan'] as const;
 const EMPTY_SOAP: SoapNote = { subjective: '', objective: '', assessment: '', plan: '' };
 const DISCIPLINES = ['PT Skilled SOAP', 'OT Functional SOAP', 'SLP Cognitive-Linguistic SOAP', 'MD Neuro Follow-up'];
-const isSoapNote = (value?: SoapNote): value is SoapNote => !!value && SOAP_SECTIONS.every(section => typeof value[section] === 'string');
+const isSoapNote = (value?: SoapNote): value is SoapNote => !!value && SOAP_SECTIONS.every(section => typeof value[section] === 'string' && value[section].trim().length > 0);
 const requestId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const responseToken = (args: ScribeArgs) => args.generation ? `${args.generation.requestId}:${args.generated_at ?? args.generation.generated_at ?? ''}` : args.generated_at ?? null;
 
 const compactText = (value: string) => value.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3).join(' ');
 
 export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
   const canEdit = args.role === 'PT';
   const [mode, setMode] = useState<'ambient' | 'dictation'>('ambient');
-  const [discipline, setDiscipline] = useState(DISCIPLINES[0]);
+  const [discipline, setDiscipline] = useState(args.discipline && DISCIPLINES.includes(args.discipline) ? args.discipline : DISCIPLINES[0]);
   const [rawInput, setRawInput] = useState(args.transcript ?? '');
-  const [soap, setSoap] = useState<SoapNote>(isSoapNote(args.soap) ? args.soap : EMPTY_SOAP);
+  const initialReviewedDraft = isSoapNote(args.soap) && (args.draft_source === 'local' || args.draft_source === 'manual');
+  const initialLocalDraft = args.generation?.error && args.transcript && !initialReviewedDraft ? expandClinicalShorthand(args.transcript, args.discipline) : null;
+  const [soap, setSoap] = useState<SoapNote>(initialLocalDraft ?? (isSoapNote(args.soap) ? args.soap : EMPTY_SOAP));
+  const [draftSource, setDraftSource] = useState<DraftSource>(initialLocalDraft ? 'local' : args.draft_source ?? (args.generation ? 'claude' : 'manual'));
   const [isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState<string | null>(args.generation?.error ?? null);
+  const [generationError, setGenerationError] = useState<string | null>(initialLocalDraft || initialReviewedDraft ? null : args.generation?.error ?? null);
   const [isListening, setIsListening] = useState(false);
   const [captureStatus, setCaptureStatus] = useState('Ready for a clinician-entered transcript or shorthand.');
   const [smartEditPrompt, setSmartEditPrompt] = useState('');
   const [signed, setSigned] = useState(args.signed === true);
   const recognitionRef = useRef<any>(null);
   const pendingRequestRef = useRef<string | null>(null);
-  const appliedResponseRef = useRef<string | null>(args.generation?.requestId ?? null);
+  const appliedResponseRef = useRef<string | null>(responseToken(args));
+  const generationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localDraftRef = useRef<{ requestId: string; soap: SoapNote } | null>(null);
+  const fallbackAppliedRef = useRef<string | null>(null);
+  const draftEditedRef = useRef(false);
   const hasNote = SOAP_SECTIONS.every(section => soap[section].trim().length > 0);
   const canRefine = canEdit && !isGenerating && !generationError && hasNote;
 
   useEffect(() => { Streamlit.setFrameHeight(); });
-  useEffect(() => () => { recognitionRef.current?.stop?.(); }, []);
-  useEffect(() => {
-    const result = args.generation;
-    if (!result || result.requestId === appliedResponseRef.current) return;
-    if (pendingRequestRef.current && result.requestId !== pendingRequestRef.current) return;
-    if (!isSoapNote(args.soap)) return;
-    appliedResponseRef.current = result.requestId;
-    pendingRequestRef.current = null;
-    setSoap(args.soap);
+  const clearGenerationTimer = () => {
+    if (generationTimerRef.current !== null) clearTimeout(generationTimerRef.current);
+    generationTimerRef.current = null;
+  };
+  const applyLocalDraft = (id: string, message: string) => {
+    const draft = localDraftRef.current;
+    if (!draft || draft.requestId !== id) return;
+    clearGenerationTimer();
+    if (fallbackAppliedRef.current !== id) {
+      setSoap(draft.soap);
+      setDraftSource('local');
+      setSigned(false);
+      fallbackAppliedRef.current = id;
+    }
+    setGenerationError(null);
     setIsGenerating(false);
-    setGenerationError(result.error);
+    setCaptureStatus(message);
+  };
+  useEffect(() => () => { recognitionRef.current?.stop?.(); clearGenerationTimer(); }, []);
+  useEffect(() => {
+    const token = responseToken(args);
+    const result = args.generation ?? (args.generated_at ? { requestId: pendingRequestRef.current ?? 'timestamp-result', error: null } : null);
+    if (!result || !token || token === appliedResponseRef.current) return;
+    if (pendingRequestRef.current && result.requestId !== pendingRequestRef.current) return;
+    appliedResponseRef.current = token;
+    clearGenerationTimer();
+    pendingRequestRef.current = null;
+    setIsGenerating(false);
+    if (result.error || !isSoapNote(args.soap)) {
+      if (localDraftRef.current?.requestId === result.requestId) {
+        applyLocalDraft(result.requestId, 'Local shorthand draft retained. Claude was unavailable; review every section.');
+      } else {
+        setGenerationError(result.error || 'Claude returned an incomplete SOAP draft. Please retry.');
+      }
+      return;
+    }
+    if (draftEditedRef.current) {
+      setCaptureStatus('Claude finished. Your local edits have been preserved.');
+      return;
+    }
+    setSoap(args.soap);
+    setDraftSource('claude');
+    setGenerationError(null);
     setSigned(false);
-    setCaptureStatus(result.error ? 'Generation failed. Your transcript is preserved; retry when ready.' : 'Claude SOAP draft received. Review all four sections before signing.');
-  }, [args.generation, args.soap]);
+    setCaptureStatus('Claude SOAP draft received. Review all four sections before signing.');
+  }, [args.generation, args.generated_at, args.soap]);
 
   const updateSoap = (section: keyof SoapNote, value: string) => {
+    draftEditedRef.current = true;
+    setDraftSource('manual');
+    setGenerationError(null);
     setSoap(current => ({ ...current, [section]: value }));
     setSigned(false);
   };
@@ -99,15 +143,29 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     setIsListening(false);
     setRawInput(corrected);
     const id = requestId();
+    clearGenerationTimer();
     pendingRequestRef.current = id;
+    localDraftRef.current = { requestId: id, soap: expandClinicalShorthand(corrected, discipline) };
+    fallbackAppliedRef.current = null;
+    draftEditedRef.current = false;
     setIsGenerating(true);
     setGenerationError(null);
     setSigned(false);
     setCaptureStatus('Claude is generating a SOAP draft from the entered transcript…');
-    Streamlit.setComponentValue({ type: 'generate_soap', requestId: id, transcript: corrected, discipline });
+    generationTimerRef.current = setTimeout(() => {
+      if (pendingRequestRef.current === id) applyLocalDraft(id, 'Local shorthand draft ready. Review every section; Claude may refine it until you edit.');
+    }, 2000);
+    try {
+      Streamlit.setComponentValue({ type: 'generate_soap', requestId: id, transcript: corrected, discipline });
+    } catch {
+      applyLocalDraft(id, 'Local shorthand draft ready. The server connection is unavailable; review every section.');
+      pendingRequestRef.current = null;
+    }
   };
 
   const applySmartEdit = (kind: 'audit' | 'cpt' | 'concise') => {
+    draftEditedRef.current = true;
+    setDraftSource('manual');
     setSoap(current => {
       if (kind === 'concise') return {
         subjective: compactText(current.subjective), objective: compactText(current.objective),
@@ -132,6 +190,8 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     if (!request) return;
     if (/concise|shorten|brief/i.test(request)) applySmartEdit('concise');
     else {
+      draftEditedRef.current = true;
+      setDraftSource('manual');
       setSoap(current => ({
         ...current,
         assessment: `${current.assessment}\nARIA edit request: ${request}`,
@@ -144,8 +204,9 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
 
   const signAndSync = () => {
     if (!canRefine) return;
+    draftEditedRef.current = true;
     setSigned(true);
-    Streamlit.setComponentValue({ type: 'signed', requestId: requestId(), soap });
+    Streamlit.setComponentValue({ type: 'signed', requestId: requestId(), soap, draftSource });
   };
 
   return (
@@ -154,9 +215,9 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
         <section className="bg-white border border-slate-300 rounded-xl shadow-sm p-5 space-y-5">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3"><img src={ariaLogo} alt="ARIA" className="h-11 w-11 shrink-0 rounded-xl" /><div><h1 className="text-xl font-semibold tracking-tight">ARIA Charting Workspace</h1><p className="text-sm text-slate-500 mt-1">Clinical Documentation &amp; Encounter Structuring</p></div></div>
+              <div className="flex items-center gap-3"><img src={ariaLogo} alt="ARIA" className="h-11 w-11 shrink-0 rounded-xl" /><div><h1 className="text-xl font-semibold tracking-tight">ARIA Scribe</h1><p className="text-sm text-slate-500 mt-1">Clinical Documentation &amp; Encounter Structuring</p></div></div>
             </div>
-            <select aria-label="Clinical documentation template" value={discipline} onChange={event => setDiscipline(event.target.value)} disabled={!canEdit || isGenerating} className="border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium bg-white">
+            <select aria-label="Clinical documentation template" value={discipline} onChange={event => { draftEditedRef.current = true; setDiscipline(event.target.value); }} disabled={!canEdit || isGenerating} className="border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium bg-white">
               {DISCIPLINES.map(option => <option key={option}>{option}</option>)}
             </select>
           </div>
@@ -171,14 +232,14 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
               </button>
               <button type="button" onClick={generateSoap} disabled={!canEdit || isGenerating || !rawInput.trim()} className="scribe-button scribe-button-primary">{isGenerating ? 'Generating SOAP Note…' : 'Generate Structured SOAP Note'}</button>
             </div>
-            <textarea aria-label="Encounter transcript" value={rawInput} onChange={event => setRawInput(event.target.value)} onBlur={event => setRawInput(applyClinicalCorrections(event.target.value))} disabled={!canEdit || isGenerating} placeholder="Speak or enter clinical shorthand here…" className="w-full min-h-[90px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" />
+            <textarea aria-label="Encounter transcript" value={rawInput} onChange={event => { draftEditedRef.current = true; setRawInput(event.target.value); }} onBlur={event => setRawInput(applyClinicalCorrections(event.target.value))} disabled={!canEdit || isGenerating} placeholder="Speak or enter clinical shorthand here…" className="w-full min-h-[90px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" />
             <p role="status" className="text-xs text-slate-500">{mode === 'ambient' ? 'Ambient capture is ready for the encounter.' : 'Direct dictation is ready for clinician-entered narration.'} {captureStatus}</p>
             {generationError && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{generationError}</p>}
           </div>
         </section>
 
         <section className="bg-white border border-slate-300 rounded-xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-300 bg-slate-50"><h2 className="font-semibold text-slate-800">Editable SOAP Workspace</h2><p className="text-xs text-slate-500 mt-1">Review every field before signing. Unmeasured tests and scores are never inferred.</p></div>
+          <div className="px-5 py-4 border-b border-slate-300 bg-slate-50"><h2 className="font-semibold text-slate-800">Editable SOAP Workspace</h2><p className="text-xs text-slate-500 mt-1">Review every field before signing. Unmeasured tests and scores are never inferred.</p>{hasNote && <p className="mt-1 text-xs font-medium text-[#145b6e]">{draftSource === 'local' ? 'Local shorthand draft · Clinician review required' : draftSource === 'claude' ? 'Claude-generated draft · Clinician review required' : 'Clinician-edited documentation'}</p>}</div>
           <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
             {SOAP_SECTIONS.map(section => (
               <label key={section} className="space-y-2"><span className="block text-sm font-semibold text-slate-700 capitalize">{section}</span><textarea aria-label={section} value={soap[section]} onChange={event => updateSoap(section, event.target.value)} disabled={!canEdit || isGenerating} placeholder="Generate a SOAP draft or enter clinician-reviewed documentation." className="w-full min-h-[170px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" /></label>

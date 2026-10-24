@@ -57,6 +57,7 @@ class ScribeTests(unittest.TestCase):
         self.assertEqual(json.loads(call['messages'][0]['content'])['transcript'], TRANSCRIPT)
         self.assertEqual(json.loads(call['messages'][0]['content'])['documentation_template'], 'physical therapy')
         self.assertGreater(call['max_tokens'], 0)
+        self.assertEqual(call['timeout'], 12.0)
 
     def test_service_failure_hides_raw_exception_and_preserves_four_error_fields(self):
         context, client = mocked_client('unused')
@@ -88,7 +89,14 @@ class ScribeTests(unittest.TestCase):
              patch('streamlit.secrets', {'ANTHROPIC_API_KEY': 'cloud-test-key'}), \
              patch.object(scribe, 'Anthropic') as client:
             scribe._client()
-        client.assert_called_once_with(api_key='cloud-test-key', timeout=45.0, max_retries=1)
+        client.assert_called_once_with(api_key='cloud-test-key', timeout=12.0, max_retries=0)
+
+    def test_cloud_secret_overrides_stale_environment_key(self):
+        with patch.dict(os.environ, {'ANTHROPIC_API_KEY': 'stale-env-key'}), \
+             patch('streamlit.secrets', {'ANTHROPIC_API_KEY': 'cloud-test-key'}), \
+             patch.object(scribe, 'Anthropic') as client:
+            scribe._client()
+        self.assertEqual(client.call_args.kwargs['api_key'], 'cloud-test-key')
 
 
 SCRIPT = '''import streamlit as st
@@ -121,7 +129,10 @@ class ScribeBridgeTests(unittest.TestCase):
         self.assertEqual(args['key'], 'aria_charting')
         self.assertEqual(args['soap'], SOAP)
         self.assertEqual(args['transcript'], TRANSCRIPT)
-        self.assertEqual(args['generation'], {'requestId': 'draft-1', 'error': None})
+        self.assertEqual(args['generation']['requestId'], 'draft-1')
+        self.assertIsNone(args['generation']['error'])
+        self.assertEqual(args['generation']['generated_at'], args['generated_at'])
+        self.assertTrue(args['generated_at'])
         self.assertFalse(app.session_state['charting_signed'])
 
     def test_failed_draft_can_retry_without_repeating_the_failed_request(self):
@@ -141,6 +152,25 @@ class ScribeBridgeTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertIsNone(app.session_state['charting_generation']['error'])
         self.assertEqual(app.session_state['charting_soap_note'], SOAP)
+
+    def test_unexpected_backend_failure_still_returns_a_completion_timestamp(self):
+        app = self.app()
+        app.session_state['scribe_event'] = self.event()
+        with patch.object(scribe, 'generate_soap', side_effect=RuntimeError('unexpected failure')):
+            app.run()
+        self.assertFalse(app.exception)
+        self.assertTrue(app.session_state['charting_generation']['error'])
+        self.assertTrue(app.session_state['last_scribe_args']['generated_at'])
+
+    def test_same_text_new_request_always_gets_a_new_timestamp(self):
+        app = self.app()
+        with patch.object(scribe, 'generate_soap', return_value={'soap': SOAP, 'error': None}):
+            app.session_state['scribe_event'] = self.event('first')
+            app.run()
+            initial = app.session_state['last_scribe_args']['generated_at']
+            app.session_state['scribe_event'] = self.event('second')
+            app.run()
+        self.assertNotEqual(initial, app.session_state['last_scribe_args']['generated_at'])
 
     def test_viewer_and_invalid_requests_never_call_claude(self):
         for role, event in [('Viewer', self.event()), ('PT', dict(self.event(), requestId=None))]:
@@ -162,6 +192,25 @@ class ScribeBridgeTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertTrue(app.session_state['charting_signed'])
         self.assertEqual(app.session_state['charting_soap_note'], SOAP)
+
+    def test_reviewed_local_draft_can_be_saved_after_cloud_failure(self):
+        app = self.app()
+        app.session_state['charting_generation'] = {'requestId': 'draft-1', 'error': 'Timed out'}
+        app.session_state['scribe_event'] = {'type': 'signed', 'requestId': 'sign-local', 'soap': SOAP, 'draftSource': 'local'}
+        app.run()
+        self.assertFalse(app.exception)
+        self.assertTrue(app.session_state['charting_signed'])
+        self.assertEqual(app.session_state['charting_draft_source'], 'local')
+        self.assertEqual(app.session_state['charting_soap_note'], SOAP)
+
+    def test_legacy_navigation_name_migrates_to_aria_scribe(self):
+        from aria_dashboard import VIEWS
+        self.assertEqual(VIEWS, ['EHR Sync & Intake', 'Evidence Bridge', 'Evidence & Guidance', 'Patient Tracker', 'Measures & Trends', 'ARIA Scribe'])
+        app = AppTest.from_string('from aria_dashboard import ensure_state\nensure_state()')
+        app.session_state['view'] = 'ARIA Chart'
+        app.run()
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state['view'], 'ARIA Scribe')
 
 
 if __name__ == '__main__':

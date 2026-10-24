@@ -81,7 +81,7 @@ LEVEL_DESCRIPTIONS = {
 V_INTAKE = "EHR Sync & Intake"
 V_PROGRESS_NOTE = "Patient Tracker"
 V_MEASURES_TRENDS = "Measures & Trends"
-V_SCRIBE = "ARIA Chart"
+V_SCRIBE = "ARIA Scribe"
 V_EVIDENCE_BRIDGE = "Evidence Bridge"
 V_EVIDENCE = "Evidence & Guidance"
 VIEWS = [V_INTAKE, V_EVIDENCE_BRIDGE, V_EVIDENCE, V_PROGRESS_NOTE, V_MEASURES_TRENDS, V_SCRIBE]
@@ -325,6 +325,7 @@ def ensure_state():
     legacy_views = {
         "Patient Biometrics": V_MEASURES_TRENDS,
         "Charting": V_SCRIBE,
+        "ARIA Chart": V_SCRIBE,
         "Literature & Evidence": V_EVIDENCE_BRIDGE,
     }
     if st.session_state.get("view") in legacy_views:
@@ -425,7 +426,7 @@ def render_sidebar():
                     "then have me read it back to confirm.\n"
                     "- **Evidence Bridge**: upload PDFs, explore the knowledge base, and ask source-grounded questions.\n"
                     "- **Evidence & Guidance**: I search PubMed and Evidence Bridge, then talk it through; reply with follow-ups.\n"
-                    "- **Patient Tracker**, **Measures & Trends**, and **ARIA Chart** open the integrated clinical views.\n"
+                    "- **Patient Tracker**, **Measures & Trends**, and **ARIA Scribe** open the integrated clinical views.\n"
                     "- Practice and synthetic data only for this pilot."
                 )
 
@@ -727,7 +728,7 @@ def render_literature(case):
 
 def render_scribe(figma_component, role="Viewer"):
     """Consume each generation event once and return the result to React."""
-    from professor_aria.scribe import generate_soap, validate_soap
+    from professor_aria.scribe import generate_soap, validate_soap, SOAP_FIELDS
 
     provider_role = st.session_state.get("user_role", role)
     event = figma_component(
@@ -735,6 +736,9 @@ def render_scribe(figma_component, role="Viewer"):
         soap=st.session_state.get("charting_soap_note", {}),
         transcript=st.session_state.get("charting_transcript", ""),
         generation=st.session_state.get("charting_generation"),
+        generated_at=st.session_state.get("charting_generated_at"),
+        discipline=st.session_state.get("charting_discipline", "PT Skilled SOAP"),
+        draft_source=st.session_state.get("charting_draft_source", "manual"),
         signed=st.session_state.get("charting_signed", False),
     )
     if provider_role != "PT" or not isinstance(event, dict):
@@ -750,17 +754,31 @@ def render_scribe(figma_component, role="Viewer"):
         if isinstance(transcript, str):
             st.session_state.charting_transcript = transcript
         st.session_state.charting_signed = False
+        st.session_state.charting_discipline = event.get("discipline", "PT Skilled SOAP")
         with st.spinner("ARIA is generating the SOAP draft…"):
-            result = generate_soap(transcript, event.get("discipline", "PT Skilled SOAP"))
+            try:
+                result = generate_soap(transcript, event.get("discipline", "PT Skilled SOAP"))
+                result["soap"] = validate_soap(result["soap"])
+                result["error"] = result.get("error")
+            except Exception:
+                message = "Claude could not complete the SOAP request. Review the local draft or retry."
+                result = {"soap": {field: message for field in SOAP_FIELDS}, "error": message}
+        generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds")
         st.session_state.charting_soap_note = result["soap"]
-        st.session_state.charting_generation = {"requestId": request_id, "error": result["error"]}
+        st.session_state.charting_generated_at = generated_at
+        st.session_state.charting_draft_source = "claude" if not result["error"] else "error"
+        st.session_state.charting_generation = {"requestId": request_id, "error": result["error"], "generated_at": generated_at}
         st.rerun()
-    elif event.get("type") == "signed" and not (st.session_state.get("charting_generation") or {}).get("error"):
+    elif event.get("type") == "signed":
+        source = event.get("draftSource", "claude")
+        if (st.session_state.get("charting_generation") or {}).get("error") and source not in {"local", "manual"}:
+            return
         try:
             st.session_state.charting_soap_note = validate_soap(event.get("soap"))
         except ValueError:
             return
         st.session_state.charting_signed = True
+        st.session_state.charting_draft_source = source
 
 
 def render_professor_dashboard(figma_component, role="Viewer"):
@@ -799,7 +817,7 @@ def render_professor_dashboard(figma_component, role="Viewer"):
             "2. I'll **read the note back** so you can confirm I've understood it before going further.\n"
             "3. **Evidence Bridge** — upload PDFs, explore the knowledge base, and ask source-grounded questions.\n"
             "4. **Evidence & Guidance** — I search PubMed and Evidence Bridge and talk it through as a mentor. Ask follow-up questions anytime.\n"
-            "5. **Patient Tracker**, **Measures & Trends**, and **ARIA Chart** open the integrated clinical views.\n"
+            "5. **Patient Tracker**, **Measures & Trends**, and **ARIA Scribe** open the integrated clinical views.\n"
         )
         st.info("This pilot uses practice and synthetic data only. Please don't enter real patient information.")
         st.write("**Open the synced Ed Vance chart on the left to begin.**")
