@@ -52,7 +52,12 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
   assert.equal((pulse.match(/bg-emerald-50/g) ?? []).length, 2);
   if (role === 'PT') {
     assert.match(markup, /Hemi-walker · Standby Assist \(SBA\) · 50 ft/);
-    assert.match(markup, /Right ankle plantarflexors: MAS Grade 1\+/);
+  }
+  const metricCards = markup.match(/<article[^>]*data-metric="[^"]+"[\s\S]*?<\/article>/g)!;
+  assert.equal(metricCards.length, 4);
+  for (const card of metricCards) {
+    assert.doesNotMatch(card, /<p[ >]/);
+    assert.equal((card.match(/<dt[ >]/g) ?? []).length, 3);
   }
   assert.match(markup, /Case reference/);
   if (role === 'MD') {

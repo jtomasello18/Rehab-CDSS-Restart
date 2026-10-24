@@ -1,188 +1,160 @@
 import React, { useState } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell, Label, ReferenceLine,
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import ariaLogo from '../assets/aria-logo.svg';
+import '../styles/MeasuresTrends.css';
 
-type ChartType = 'line' | 'bar' | 'pie';
-type ChartKind = 'mobility' | 'recovery';
-type SeriesKey = 'berg' | 'gait' | 'pt' | 'ot' | 'slp';
-type Series = { key: SeriesKey; name: string; color: string; axis: 'left' | 'right' };
+type ChartType = 'line' | 'bar';
+type MetricKey = 'berg' | 'fma' | 'wab' | 'baclofen';
+type SpecialtyChart = {
+  key: MetricKey; specialty: string; title: string; range: string;
+  color: string; maximum: number; ticks: number[]; badge: string; badgeClass: string;
+};
 
-// Six-point case series supplied for this outcome visualization. The discipline
-// indices are descriptive case values, not a validated composite outcome scale.
-const outcomeData = [
-  { time: 'Wk 4', phase: 'Inpatient', fullLabel: 'Wk 4 (Inpatient)', berg: 26, gait: 0.20, pt: 46, ot: 18, slp: 48 },
-  { time: 'Wk 6', phase: 'Inpatient', fullLabel: 'Wk 6 (Inpatient)', berg: 32, gait: 0.30, pt: 57, ot: 21, slp: 54 },
-  { time: 'Wk 8', phase: 'Inpatient', fullLabel: 'Wk 8 (Inpatient)', berg: 38, gait: 0.40, pt: 68, ot: 24, slp: 60 },
-  { time: '09/29', phase: 'Wk 10 · IRF discharge', fullLabel: '09/29 (Wk 10 · IRF Discharge)', berg: 42, gait: 0.48, pt: 75, ot: 27, slp: 64 },
-  { time: '10/06', phase: 'Wk 11 · MD visit', fullLabel: '10/06 (Wk 11 · Baclofen 10mg TID)', berg: 40, gait: 0.41, pt: 71, ot: 30, slp: 68 },
-  { time: '10/13', phase: 'Wk 12 · Outpatient', fullLabel: '10/13 (Wk 12 · Outpatient Eval)', berg: 38, gait: 0.35, pt: 68, ot: 33, slp: 72 },
+// Four-point series supplied for the Ed Vance case visualization.
+const outcomes = [
+  { time: 'Wk 6', phase: ['Inpatient'], label: 'Wk 6 Inpatient', berg: 32, fma: 14, wab: 58.0, baclofen: 15 },
+  { time: '09/29', phase: ['IRF', 'Discharge'], label: '09/29 IRF Discharge', berg: 42, fma: 18, wab: 64.2, baclofen: 15 },
+  { time: '10/06', phase: ['MD Visit'], label: '10/06 MD Visit', berg: 40, fma: 20, wab: 68.0, baclofen: 30 },
+  { time: '10/13', phase: ['Outpatient', 'Eval'], label: '10/13 Outpatient Eval', berg: 38, fma: 22, wab: 71.8, baclofen: 30 },
 ];
-const seriesByKind: Record<ChartKind, Series[]> = {
-  mobility: [
-    { key: 'berg', name: 'Berg Balance Scale', color: '#145b6e', axis: 'left' },
-    { key: 'gait', name: '10MWT Gait Velocity', color: '#2563eb', axis: 'right' },
-  ],
-  recovery: [
-    { key: 'pt', name: 'PT Mobility Index (Berg/10MWT)', color: '#145b6e', axis: 'left' },
-    { key: 'ot', name: 'OT Upper Extremity (FMA-UE / ADL)', color: '#b45309', axis: 'left' },
-    { key: 'slp', name: 'SLP Language Recovery (WAB-R / BNT)', color: '#2563eb', axis: 'left' },
-  ],
-};
-const latest = outcomeData[outcomeData.length - 1];
-const chartTitles: Record<ChartKind, string> = {
-  mobility: 'Mobility & Fall-Risk Trajectory (PT Standardized Outcomes)',
-  recovery: 'Multidisciplinary Functional Recovery (PT · OT · SLP Outcome Index)',
-};
-const chartSubtitles: Record<ChartKind, string> = {
-  mobility: 'Tracks Berg Balance Scale (0–56) and 10-Meter Walk Test Velocity (m/s) from Inpatient Rehab (Wk 4) through Outpatient Eval (Wk 12). Note the functional regression following the 10/06 Baclofen increase (5mg → 10mg TID).',
-  recovery: 'Standardized outcome progression across Physical Therapy (Berg/Gait), Occupational Therapy (FMA-UE Motor), and Speech-Language Pathology (WAB-R / Naming Accuracy) normalized to % of functional target.',
-};
-const tooltipStyle = { borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, boxShadow: '0 4px 12px rgb(15 23 42 / 0.08)' };
-const formatValue = (key: SeriesKey, value: number) => key === 'gait' ? `${value.toFixed(2)} m/s` : key === 'berg' ? `${value}/56` : `${value}%`;
-
-function ChartToggle({ value, onChange, title }: { value: ChartType; onChange: (value: ChartType) => void; title: string }) {
-  return (
-    <div role="group" aria-label={`${title} chart type`} className="flex shrink-0 gap-1 rounded-lg border border-slate-300 bg-slate-50 p-1">
-      {(['line', 'bar', 'pie'] as const).map(type => (
-        <button key={type} type="button" aria-pressed={value === type} onClick={() => onChange(type)}
-          className={`rounded-md px-4 py-2 text-xs font-semibold capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#145b6e] ${value === type ? 'bg-[#145b6e] text-white shadow-sm' : 'text-slate-600 hover:bg-white hover:text-[#145b6e]'}`}>
-          {type === 'line' ? 'Line' : type === 'bar' ? 'Bar' : 'Pie'}
-        </button>
-      ))}
-    </div>
-  );
-}
+const charts: SpecialtyChart[] = [
+  { key: 'berg', specialty: 'Physical Therapy (PT)', title: 'Berg Balance Scale', range: '0–56',
+    color: '#145b6e', maximum: 56, ticks: [0, 14, 28, 42, 56],
+    badge: 'Current: 38/56 · Regressing (Fall-Risk Cutoff: 45/56)', badgeClass: 'border-red-200 bg-red-50 text-red-800' },
+  { key: 'fma', specialty: 'Occupational Therapy (OT)', title: 'Fugl-Meyer Upper Extremity', range: 'FMA-UE 0–66',
+    color: '#0d9488', maximum: 66, ticks: [0, 22, 44, 66],
+    badge: 'Current: 22/66 · Progressing (+4 pts from IRF Discharge)', badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
+  { key: 'wab', specialty: 'Speech-Language (SLP)', title: 'WAB-R Aphasia Quotient', range: '0–100',
+    color: '#2563eb', maximum: 100, ticks: [0, 25, 50, 75, 100],
+    badge: 'Current: 71.8 / 100 · Progressing (+7.6 pts from IRF Discharge)', badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
+  { key: 'baclofen', specialty: 'Attending Physician (MD)', title: 'Oral Baclofen Total Daily Dose', range: 'mg/day',
+    color: '#b45309', maximum: 40, ticks: [0, 10, 20, 30, 40],
+    badge: 'Current: 30 mg/day (10mg TID) · Doubled on 10/06', badgeClass: 'border-amber-200 bg-amber-50 text-amber-900' },
+];
+const formatValue = (key: MetricKey, value: number) => key === 'baclofen'
+  ? `${value} mg/day (${value / 3}mg TID)`
+  : key === 'wab' ? `${value.toFixed(1)} / 100` : `${value}/${key === 'berg' ? 56 : 66}`;
 
 function TimelineTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
-  const point = outcomeData.find(item => item.time === payload?.value);
+  const point = outcomes.find(item => item.time === payload?.value);
   return (
-    <g transform={`translate(${x},${y})`}>
-      <text textAnchor="middle" fill="#334155" fontSize={12} fontWeight={600} y={16}>{point?.time}</text>
-      <text textAnchor="middle" fill="#64748b" fontSize={10} y={33}>{point?.phase}</text>
+    <g transform={`translate(${x},${y})`} textAnchor="middle">
+      <text fill="#334155" fontSize={11} fontWeight={600} y={16}>{point?.time}</text>
+      <text fill="#64748b" fontSize={10} y={31}>
+        {point?.phase.map((line, index) => <tspan key={line} x={0} dy={index ? 12 : 0}>{line}</tspan>)}
+      </text>
     </g>
   );
 }
 
-function OutcomeTrajectory({ kind, chartType }: { kind: ChartKind; chartType: 'line' | 'bar' }) {
-  const Chart = chartType === 'bar' ? BarChart : LineChart;
-  const mobility = kind === 'mobility';
-  return (
-    <div className="overflow-x-auto" tabIndex={0} aria-label={`${chartTitles[kind]} timeline; scroll horizontally on small screens`}>
-      <div className="h-[340px] min-w-[680px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <Chart data={outcomeData} margin={{ top: 14, right: mobility ? 28 : 44, left: 22, bottom: 10 }} barGap={6}>
-            <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="time" tick={<TimelineTick />} interval={0} height={58} tickLine={false} axisLine={{ stroke: '#cbd5e1' }} padding={{ left: 24, right: 24 }} />
-            <YAxis yAxisId="left" domain={[0, mobility ? 56 : 100]} ticks={mobility ? [0, 14, 28, 42, 56] : [0, 25, 50, 75, 100]} tick={{ fontSize: 12, fill: '#145b6e' }} tickLine={false} axisLine={false} width={48}
-              tickFormatter={value => mobility ? String(value) : `${value}%`}
-              label={{ value: mobility ? 'Berg Balance (points)' : 'Functional target (%)', angle: -90, position: 'insideLeft', dx: -12, style: { fill: '#145b6e', fontSize: 12 } }} />
-            {mobility && <YAxis yAxisId="right" orientation="right" domain={[0, 1]} ticks={[0, 0.2, 0.4, 0.6, 0.8, 1]} tickFormatter={value => value.toFixed(1)} tick={{ fontSize: 12, fill: '#2563eb' }} tickLine={false} axisLine={false} width={48}
-              label={{ value: 'Gait velocity (m/s)', angle: 90, position: 'insideRight', dx: 16, style: { fill: '#2563eb', fontSize: 12 } }} />}
-            <Tooltip contentStyle={tooltipStyle} labelFormatter={label => outcomeData.find(item => item.time === label)?.fullLabel ?? label}
-              formatter={(value, name, item) => [formatValue(item.dataKey as SeriesKey, Number(value)), name]} />
-            {mobility && <ReferenceLine yAxisId="left" y={45} stroke="#145b6e" strokeDasharray="6 5" strokeOpacity={0.45} />}
-            {mobility && <ReferenceLine yAxisId="right" y={0.4} stroke="#2563eb" strokeDasharray="6 5" strokeOpacity={0.45} />}
-            <ReferenceLine yAxisId="left" x="10/06" stroke="#94a3b8" strokeDasharray="3 4" />
-            {seriesByKind[kind].map(series => chartType === 'bar'
-              ? <Bar key={series.key} yAxisId={series.axis} dataKey={series.key} name={series.name} fill={series.color} maxBarSize={36} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-              : <Line key={series.key} yAxisId={series.axis} dataKey={series.key} name={series.name} type="linear" stroke={series.color} strokeWidth={3} connectNulls={true} dot={{ r: 5, fill: series.color, stroke: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 7 }} isAnimationActive={false} />)}
-          </Chart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-function MobilityPies() {
-  // Keep unlike units separate. A combined BBS/gait pie would imply that points
-  // and metres/second can be added. Both rings use the trajectory axis ranges.
-  return (
-    <div className="grid min-h-[340px] grid-cols-1 gap-4 sm:grid-cols-2">
-      {seriesByKind.mobility.map(series => {
-        const maximum = series.key === 'berg' ? 56 : 1;
-        const slices = [{ name: series.name, value: latest[series.key] }, { name: 'Remaining plotting range', value: maximum - latest[series.key] }];
-        return (
-          <div key={series.key} className="flex flex-col items-center justify-center rounded-lg bg-slate-50 p-3">
-            <p className="text-sm font-semibold text-slate-700">{series.name} · 10/13</p>
-            <div className="h-[220px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={slices} dataKey="value" nameKey="name" innerRadius={60} outerRadius={85} strokeWidth={0} isAnimationActive={false}>
-                    <Cell fill={series.color} /><Cell fill="#e2e8f0" />
-                    <Label value={formatValue(series.key, latest[series.key])} position="center" fill={series.color} fontSize={20} fontWeight={600} />
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={value => series.key === 'gait' ? `${Number(value).toFixed(2)} m/s` : `${value} points`} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="text-center text-xs text-slate-500">{series.key === 'berg' ? 'High fall risk · score below 45/56' : 'Household ambulation · below 0.40 m/s'}</p>
-            <p className="mt-1 text-center text-xs text-slate-500">{series.key === 'berg' ? '0–56 point scale' : '0–1.0 m/s plotting range'}</p>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function RecoveryPie() {
-  const slices = seriesByKind.recovery.map(series => ({ name: series.name, value: latest[series.key], color: series.color }));
-  const total = slices.reduce((sum, slice) => sum + slice.value, 0);
-  return (
-    <div className="flex h-[340px] flex-col">
-      <p className="text-center text-xs text-slate-500">10/13 current index breakdown · slices show relative shares of the three displayed indices, not therapy dose.</p>
-      <div className="min-h-0 flex-1">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie data={slices} dataKey="value" nameKey="name" innerRadius={65} outerRadius={110} paddingAngle={3} isAnimationActive={false}>
-              {slices.map(slice => <Cell key={slice.name} fill={slice.color} />)}
-              <Label value="10/13" position="center" fill="#334155" fontSize={20} fontWeight={600} />
-            </Pie>
-            <Tooltip contentStyle={tooltipStyle} formatter={value => [`${value}% of target · ${(Number(value) / total * 100).toFixed(1)}% of displayed total`, 'Current index']} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-function ChartCard({ kind }: { kind: ChartKind }) {
+function OutcomeCard({ chart }: { chart: SpecialtyChart }) {
   const [chartType, setChartType] = useState<ChartType>('line');
-  const mobility = kind === 'mobility';
-  const notes = { pt: 'Regressing · BBS 38/56, 10MWT 0.35 m/s', ot: 'Slow proximal gain · FMA-UE 22/66, elbow MAS Gr 2', slp: 'Progressing · 20-min fatigue window' };
+  const Chart = chartType === 'line' ? LineChart : BarChart;
   return (
-    <section aria-labelledby={`${kind}-title`} className="min-w-0 rounded-xl border border-slate-300 bg-white shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 p-5">
-        <div className="min-w-0 flex-1 basis-[540px]">
-          <h2 id={`${kind}-title`} className="text-lg font-semibold text-slate-800">{chartTitles[kind]}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">{chartSubtitles[kind]}</p>
+    <section aria-labelledby={`${chart.key}-title`} className="min-w-0 rounded-xl border border-slate-300 bg-white shadow-sm" data-outcome-card={chart.key}>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 p-5">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-[#145b6e]">{chart.specialty}</p>
+          <h2 id={`${chart.key}-title`} className="mt-1 text-base font-semibold text-slate-800">{chart.title}</h2>
+          <p className="mt-1 text-xs text-slate-500">{chart.range}</p>
         </div>
-        <ChartToggle value={chartType} onChange={setChartType} title={chartTitles[kind]} />
+        <div role="group" aria-label={`${chart.specialty} chart type`} className="flex shrink-0 gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          {(['line', 'bar'] as const).map(type => <button key={type} type="button" aria-pressed={chartType === type} onClick={() => setChartType(type)}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#145b6e] ${chartType === type ? 'bg-[#145b6e] text-white shadow-sm' : 'text-slate-600 hover:bg-white hover:text-[#145b6e]'}`}>
+            {type === 'line' ? 'Line' : 'Bar'}
+          </button>)}
+        </div>
       </div>
-      <div className="space-y-4 p-4 sm:p-5" data-chart-kind={kind} data-chart-type={chartType}>
-        {mobility && <div className="flex flex-wrap gap-2 text-xs font-medium">
-          <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[#145b6e]">Berg cutoff: 45/56 · Scores &lt;45 = High Fall Risk</span>
-          <a href="https://pubmed.ncbi.nlm.nih.gov/17510461/" target="_blank" rel="noreferrer" className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-blue-700">Limited-community boundary: 0.40 m/s · &lt;0.40 m/s = Household Only</a>
-        </div>}
-        {chartType === 'pie' ? mobility ? <MobilityPies /> : <RecoveryPie /> : <OutcomeTrajectory kind={kind} chartType={chartType} />}
-        <div className={`grid gap-3 ${mobility ? 'sm:grid-cols-2' : 'lg:grid-cols-3'}`} aria-label="Current outcome legend">
-          {seriesByKind[kind].map(series => <div key={series.key} className="flex items-start gap-2 text-sm text-slate-600">
-            <span aria-hidden="true" className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: series.color }} />
-            <div><span className="font-medium text-slate-700">{series.name}: {formatValue(series.key, latest[series.key])}</span>
-              {!mobility && <p className="mt-0.5 text-xs">{notes[series.key as keyof typeof notes]}</p>}
-            </div>
-          </div>)}
+      <div className="p-4 sm:p-5">
+        <p className={`mb-4 w-fit rounded-md border px-3 py-2 text-xs font-semibold leading-relaxed ${chart.badgeClass}`}>{chart.badge}</p>
+        <div className="h-[250px] min-w-0" data-chart-type={chartType}>
+          <ResponsiveContainer width="100%" height="100%">
+            <Chart data={outcomes} margin={{ top: 10, right: 12, left: -12, bottom: 0 }}>
+              <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="time" tick={<TimelineTick />} interval={0} height={58} tickLine={false} axisLine={{ stroke: '#cbd5e1' }} padding={{ left: 24, right: 30 }} />
+              <YAxis domain={[0, chart.maximum]} ticks={chart.ticks} width={44} tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12 }}
+                labelFormatter={label => outcomes.find(point => point.time === label)?.label ?? label}
+                formatter={value => [formatValue(chart.key, Number(value)), chart.title]} />
+              {chart.key === 'berg' && <ReferenceLine y={45} stroke="#dc2626" strokeDasharray="6 4" strokeOpacity={0.65} />}
+              {chartType === 'line'
+                ? <Line dataKey={chart.key} name={chart.title} type={chart.key === 'baclofen' ? 'stepAfter' : 'linear'} stroke={chart.color} strokeWidth={3} connectNulls={true} dot={{ r: 5, fill: chart.color, stroke: '#ffffff', strokeWidth: 2 }} activeDot={{ r: 7 }} isAnimationActive={false} />
+                : <Bar dataKey={chart.key} name={chart.title} fill={chart.color} maxBarSize={44} radius={[4, 4, 0, 0]} isAnimationActive={false} />}
+            </Chart>
+          </ResponsiveContainer>
         </div>
-        {mobility ? <p className="rounded-lg border border-[#c9dfe5] bg-[#f0f7f9] px-4 py-3 text-sm leading-relaxed text-[#145b6e]">
-          <strong>10/06 Event: Oral Baclofen doubled (5mg → 10mg TID).</strong> From IRF discharge to outpatient evaluation, Berg dropped 4 points (42 → 38) and gait velocity declined 0.13 m/s (0.48 → 0.35 m/s). The regression may be correlated with titration.
-        </p> : <p className="text-xs leading-relaxed text-slate-500">Case visualization: supplied six-point trajectories; discipline indices are descriptive percentages of functional target, not a validated composite score.</p>}
         <div className="sr-only"><table>
-          <caption>{chartTitles[kind]} — six-point case series</caption>
-          <thead><tr><th>Encounter</th>{seriesByKind[kind].map(series => <th key={series.key}>{series.name}</th>)}</tr></thead>
-          <tbody>{outcomeData.map(point => <tr key={point.time}><th>{point.fullLabel}</th>{seriesByKind[kind].map(series => <td key={series.key}>{formatValue(series.key, point[series.key])}</td>)}</tr>)}</tbody>
+          <caption>{chart.specialty}: {chart.title}</caption>
+          <thead><tr><th>Encounter</th><th>{chart.title}</th></tr></thead>
+          <tbody>{outcomes.map(point => <tr key={point.time}><th>{point.label}</th><td>{formatValue(chart.key, point[chart.key])}</td></tr>)}</tbody>
         </table></div>
+      </div>
+    </section>
+  );
+}
+
+function BrainMap() {
+  return (
+    <figure className="min-w-0">
+      <div className="rounded-xl border border-slate-200 bg-[#f8fafc] p-4">
+        <div className="flex justify-between text-[10px] font-semibold uppercase tracking-widest text-slate-500"><span>Territory schematic · Superior view</span><span>Anterior</span></div>
+        <svg viewBox="0 0 360 260" role="img" aria-labelledby="mca-map-title mca-map-description" className="mx-auto h-[240px] w-full max-w-[380px]">
+          <title id="mca-map-title">Left MCA Territory Infarction (Motor Cortex &amp; Basal Ganglia)</title>
+          <desc id="mca-map-description">Anatomical schematic, not patient imaging. The left hemisphere is on the viewer's left. Red shading and a pulsing dot mark the left middle cerebral artery territory; the deeper basal ganglia and internal capsule are shown as an inset overlay.</desc>
+          <defs>
+            <radialGradient id="mca-lesion-glow"><stop offset="0%" stopColor="#ef4444" stopOpacity="0.6" /><stop offset="100%" stopColor="#ef4444" stopOpacity="0" /></radialGradient>
+          </defs>
+          <text x="77" y="22" fill="#145b6e" fontSize="12" fontWeight="700">LEFT</text>
+          <text x="254" y="22" fill="#64748b" fontSize="12" fontWeight="700">RIGHT</text>
+          <path d="M173 37 C151 24 115 28 95 43 C64 52 44 81 45 105 C26 130 35 158 47 177 C44 203 69 225 92 226 C112 244 147 237 169 222 C181 190 168 165 177 143 C169 110 182 69 173 37Z" fill="#dce8eb" stroke="#145b6e" strokeWidth="2.5" />
+          <path d="M187 37 C209 24 245 28 265 43 C296 52 316 81 315 105 C334 130 325 158 313 177 C316 203 291 225 268 226 C248 244 213 237 191 222 C179 190 192 165 183 143 C191 110 178 69 187 37Z" fill="#e8eef2" stroke="#64748b" strokeWidth="2.5" />
+          <path d="M95 52 C64 65 47 91 49 110 C32 135 43 161 54 180 C57 201 78 219 98 220 L127 191 L119 148 L133 108 L119 75Z" fill="#ef4444" fillOpacity="0.19" stroke="#ef4444" strokeOpacity="0.45" strokeWidth="1.5" />
+          <g fill="none" stroke="#5d8691" strokeWidth="2" strokeLinecap="round">
+            <path d="M147 48 Q114 44 105 69 Q77 66 69 91 M160 76 Q136 72 128 92 Q99 83 90 105 Q65 104 57 122 M156 108 Q146 130 125 130 Q101 117 89 138 Q65 133 54 151 M158 157 Q138 148 127 164 Q102 151 85 170 Q68 160 58 182 M154 194 Q133 179 117 196 Q96 184 81 207 M113 57 Q122 62 121 78 M71 91 Q82 85 90 96 M88 138 Q97 145 94 157 M127 164 Q136 173 132 185" />
+            <path d="M213 48 Q246 44 255 69 Q283 66 291 91 M200 76 Q224 72 232 92 Q261 83 270 105 Q295 104 303 122 M204 108 Q214 130 235 130 Q259 117 271 138 Q295 133 306 151 M202 157 Q222 148 233 164 Q258 151 275 170 Q292 160 302 182 M206 194 Q227 179 243 196 Q264 184 279 207 M247 57 Q238 62 239 78 M289 91 Q278 85 270 96 M272 138 Q263 145 266 157 M233 164 Q224 173 228 185" />
+          </g>
+          <path d="M147 67 Q132 87 119 101 Q107 117 106 137" fill="none" stroke="#145b6e" strokeWidth="7" strokeLinecap="round" strokeOpacity="0.7" />
+          <ellipse cx="143" cy="149" rx="16" ry="23" fill="#145b6e" fillOpacity="0.2" stroke="#145b6e" strokeDasharray="3 3" />
+          <path d="M137 136 Q146 148 137 162" fill="none" stroke="#145b6e" strokeWidth="3" />
+          <circle cx="82" cy="119" r="33" fill="url(#mca-lesion-glow)" />
+          <circle cx="82" cy="119" r="14" fill="#ef4444" className="aria-mca-pulse" />
+          <circle cx="82" cy="119" r="6.5" fill="#ef4444" stroke="#ffffff" strokeWidth="2.5" />
+          <path d="M82 101 L73 68 L39 46" fill="none" stroke="#ef4444" strokeWidth="1.5" />
+          <text x="5" y="42" fill="#b91c1c" fontSize="11" fontWeight="700">Left MCA</text>
+          <text x="180" y="255" textAnchor="middle" fill="#64748b" fontSize="10">Posterior · Deep structures shown as overlay</text>
+        </svg>
+        <figcaption className="text-center text-sm font-semibold text-[#145b6e]">Left MCA Territory Infarction (Motor Cortex &amp; Basal Ganglia)</figcaption>
+      </div>
+      <dl className="mt-4 space-y-3 text-xs leading-relaxed">
+        {[
+          ['Left Motor Strip (Precentral Gyrus)', 'Right Hemiparesis (UE Stage 3, LE Stage 4)'],
+          ['Left Basal Ganglia / Internal Capsule', 'Right Flexor Synergy & Tone (Elbow MAS Gr 2)'],
+          ["Left Dominant Perisylvian / Broca’s Area", 'Mild Expressive Aphasia'],
+        ].map(([area, finding]) => <div key={area} className="rounded-md border border-slate-200 bg-white px-3 py-2"><dt className="font-semibold text-slate-700">{area}</dt><dd className="mt-0.5 text-slate-600">→ {finding}</dd></div>)}
+      </dl>
+    </figure>
+  );
+}
+
+function NeuroPrognosis() {
+  return (
+    <section aria-labelledby="neuro-prognosis-title" className="min-w-0 overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
+      <h2 id="neuro-prognosis-title" className="border-b border-slate-200 px-5 py-4 text-lg font-semibold text-slate-800">Neuro-Anatomical Localization &amp; Multidisciplinary Prognosis</h2>
+      <div className="grid gap-6 p-5 lg:grid-cols-2 lg:gap-8">
+        <BrainMap />
+        <div className="flex flex-col justify-center gap-5">
+          {[
+            { number: '01', title: 'Motor & Language Trajectory', text: 'OT (FMA-UE 18 → 22/66) and SLP (WAB-R 64.2 → 71.8) show measured gains, supporting continued subacute rehabilitation potential at Week 12.' },
+            { number: '02', title: 'Mobility Regression & Medication Review', text: 'PT gait (0.48 → 0.35 m/s) and balance (BBS 42 → 38/56) declined following the 10/06 Baclofen increase (5mg → 10mg TID). Sedation or weakness may contribute; reassess for other causes of decline.' },
+            { number: '03', title: 'Prognosis & Team Action Plan', text: 'Goals remain limited community ambulation (≥0.40 m/s) and independent self-feeding. Coordinate MD medication review, a gradual taper if clinically appropriate, focal spasticity assessment, and a right AFO evaluation for swing-phase foot drop.' },
+          ].map(item => <article key={item.number} className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#145b6e]/10 text-xs font-bold text-[#145b6e]">{item.number}</span>
+            <div><h3 className="text-sm font-semibold text-slate-800">{item.title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-600">{item.text}</p></div>
+          </article>)}
+        </div>
       </div>
     </section>
   );
@@ -198,8 +170,10 @@ export default function PatientBiometricsTab() {
         </div>
         <div className="self-start rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">Ed Vance, 67M <span className="mx-2 text-slate-300">|</span> MRN #482910</div>
       </header>
-      <ChartCard kind="mobility" />
-      <ChartCard kind="recovery" />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2" data-outcome-grid>
+        {charts.map(chart => <OutcomeCard key={chart.key} chart={chart} />)}
+      </div>
+      <NeuroPrognosis />
     </div>
   );
 }

@@ -45,7 +45,6 @@ function LongitudinalMetric({ metric }: { metric: TrackerMetric }) {
       <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">{metric.label}</h3>
       <div className="min-h-10 break-words text-2xl font-bold tracking-tight text-slate-900">{metricValue(metric, 'current')}</div>
       <Badge tone={delta.tone}>{delta.text}</Badge>
-      {metric.note && <p className="text-xs leading-relaxed text-slate-600">{metric.note}</p>}
       <dl className="mt-auto grid grid-cols-3 gap-1.5 border-t border-slate-100 pt-3">
         {encounters.map(encounter => (
           <div key={encounter.key} className={cn('min-w-0 rounded-md p-2', encounter.key === 'current' ? 'bg-[#145b6e]/5' : 'bg-slate-50')}>
