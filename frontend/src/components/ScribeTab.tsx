@@ -6,43 +6,51 @@ import '../styles/ChartingWorkspace.css';
 import { applyClinicalCorrections } from '../utils/clinicalCorrections';
 
 type SoapNote = { subjective: string; objective: string; assessment: string; plan: string };
-type ScribeArgs = { role?: string; soap?: SoapNote; signed?: boolean };
+type GenerationResult = { requestId: string; error: string | null };
+type ScribeArgs = { role?: string; soap?: SoapNote; signed?: boolean; transcript?: string; generation?: GenerationResult };
 
 const QUICK_SHORTHAND = 'Walked 50ft w/ hemi-walker & SBA, R foot catching on swing, 2 near-falls, cued dorsiflexion, need AFO';
-const DEFAULT_SOAP: SoapNote = {
-  subjective: 'Patient reports 2 near-falls at home this week and right foot catching on the carpet during walking. Patient reports fatigue after approximately 20 minutes.',
-  objective: 'Ambulated 50 ft with a hemi-walker and standby assist (SBA). Absent right heel strike, severe swing-phase foot drop and right hip hiking/circumduction observed. Skilled cueing provided for dorsiflexion. No additional standardized tests documented in this draft.',
-  assessment: 'Documented findings indicate ongoing fall risk related to swing-phase foot clearance and post-stroke fatigue. Continued skilled gait training is medically necessary to address safety, motor control, and progression toward independent household mobility.',
-  plan: 'Continue skilled gait training with hemi-walker and standby assist, dorsiflexion cueing, and dynamic balance progression. Request AFO evaluation. Reassess documented foot clearance and near-fall frequency next visit.',
-};
+const SOAP_SECTIONS = ['subjective', 'objective', 'assessment', 'plan'] as const;
+const EMPTY_SOAP: SoapNote = { subjective: '', objective: '', assessment: '', plan: '' };
 const DISCIPLINES = ['PT Skilled SOAP', 'OT Functional SOAP', 'SLP Cognitive-Linguistic SOAP', 'MD Neuro Follow-up'];
+const isSoapNote = (value?: SoapNote): value is SoapNote => !!value && SOAP_SECTIONS.every(section => typeof value[section] === 'string');
+const requestId = () => `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 const compactText = (value: string) => value.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3).join(' ');
-
-const structureSoap = (source: string, discipline: string): SoapNote => {
-  const transcript = source.trim() || 'No transcript or shorthand entered.';
-  return {
-    subjective: `Clinician-entered ${discipline} report: ${transcript}\nPatient-reported symptoms and functional concerns should be confirmed during clinician review.`,
-    objective: `Skilled session observations documented from the source: ${transcript}\nNo additional standardized tests, scores, or measurements were added.`,
-    assessment: `The documented findings support continued skilled ${discipline.toLowerCase()} intervention for the stated functional limitations. Clinical interpretation remains limited to the information entered above and requires clinician verification.`,
-    plan: `Continue skilled care directed at the documented limitations: ${transcript}\nReassess the reported response and add only measurements obtained during the encounter.`,
-  };
-};
 
 export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
   const canEdit = args.role === 'PT';
   const [mode, setMode] = useState<'ambient' | 'dictation'>('ambient');
   const [discipline, setDiscipline] = useState(DISCIPLINES[0]);
-  const [rawInput, setRawInput] = useState('');
-  const [soap, setSoap] = useState<SoapNote>(args.soap && Object.keys(args.soap).length ? args.soap : DEFAULT_SOAP);
+  const [rawInput, setRawInput] = useState(args.transcript ?? '');
+  const [soap, setSoap] = useState<SoapNote>(isSoapNote(args.soap) ? args.soap : EMPTY_SOAP);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(args.generation?.error ?? null);
   const [isListening, setIsListening] = useState(false);
   const [captureStatus, setCaptureStatus] = useState('Ready for a clinician-entered transcript or shorthand.');
   const [smartEditPrompt, setSmartEditPrompt] = useState('');
   const [signed, setSigned] = useState(args.signed === true);
   const recognitionRef = useRef<any>(null);
+  const pendingRequestRef = useRef<string | null>(null);
+  const appliedResponseRef = useRef<string | null>(args.generation?.requestId ?? null);
+  const hasNote = SOAP_SECTIONS.every(section => soap[section].trim().length > 0);
+  const canRefine = canEdit && !isGenerating && !generationError && hasNote;
 
   useEffect(() => { Streamlit.setFrameHeight(); });
   useEffect(() => () => { recognitionRef.current?.stop?.(); }, []);
+  useEffect(() => {
+    const result = args.generation;
+    if (!result || result.requestId === appliedResponseRef.current) return;
+    if (pendingRequestRef.current && result.requestId !== pendingRequestRef.current) return;
+    if (!isSoapNote(args.soap)) return;
+    appliedResponseRef.current = result.requestId;
+    pendingRequestRef.current = null;
+    setSoap(args.soap);
+    setIsGenerating(false);
+    setGenerationError(result.error);
+    setSigned(false);
+    setCaptureStatus(result.error ? 'Generation failed. Your transcript is preserved; retry when ready.' : 'Claude SOAP draft received. Review all four sections before signing.');
+  }, [args.generation, args.soap]);
 
   const updateSoap = (section: keyof SoapNote, value: string) => {
     setSoap(current => ({ ...current, [section]: value }));
@@ -85,11 +93,18 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
   };
 
   const generateSoap = () => {
+    if (!canEdit || isGenerating || !rawInput.trim()) return;
     const corrected = applyClinicalCorrections(rawInput);
+    recognitionRef.current?.stop?.();
+    setIsListening(false);
     setRawInput(corrected);
-    setSoap(structureSoap(corrected, discipline));
+    const id = requestId();
+    pendingRequestRef.current = id;
+    setIsGenerating(true);
+    setGenerationError(null);
     setSigned(false);
-    setCaptureStatus('SOAP draft structured from the entered transcript without adding unmeasured tests.');
+    setCaptureStatus('Claude is generating a SOAP draft from the entered transcript…');
+    Streamlit.setComponentValue({ type: 'generate_soap', requestId: id, transcript: corrected, discipline });
   };
 
   const applySmartEdit = (kind: 'audit' | 'cpt' | 'concise') => {
@@ -128,8 +143,9 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
   };
 
   const signAndSync = () => {
+    if (!canRefine) return;
     setSigned(true);
-    Streamlit.setComponentValue({ type: 'signed', soap });
+    Streamlit.setComponentValue({ type: 'signed', requestId: requestId(), soap });
   };
 
   return (
@@ -140,7 +156,7 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
             <div>
               <div className="flex items-center gap-3"><img src={ariaLogo} alt="ARIA" className="h-11 w-11 shrink-0 rounded-xl" /><div><h1 className="text-xl font-semibold tracking-tight">ARIA Charting Workspace</h1><p className="text-sm text-slate-500 mt-1">Clinical Documentation &amp; Encounter Structuring</p></div></div>
             </div>
-            <select aria-label="Clinical documentation template" value={discipline} onChange={event => setDiscipline(event.target.value)} className="border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium bg-white">
+            <select aria-label="Clinical documentation template" value={discipline} onChange={event => setDiscipline(event.target.value)} disabled={!canEdit || isGenerating} className="border border-slate-300 rounded-lg px-3 py-2 text-sm font-medium bg-white">
               {DISCIPLINES.map(option => <option key={option}>{option}</option>)}
             </select>
           </div>
@@ -150,21 +166,22 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
           </div>
           <div className="rounded-lg border border-slate-300 bg-slate-50 p-4 space-y-3">
             <div className="scribe-capture-toolbar">
-              <button type="button" onClick={isListening ? stopVoiceDictation : startVoiceDictation} className="scribe-button scribe-button-secondary">
+              <button type="button" onClick={isListening ? stopVoiceDictation : startVoiceDictation} disabled={!canEdit || isGenerating} className="scribe-button scribe-button-secondary">
                 {isListening ? <MicOff className="h-4 w-4 shrink-0" aria-hidden="true" /> : <Mic className="h-4 w-4 shrink-0" aria-hidden="true" />}{isListening ? 'Stop Listening' : 'Start Voice Dictation'}
               </button>
-              <button type="button" onClick={generateSoap} disabled={!canEdit} className="scribe-button scribe-button-primary">Generate Structured SOAP Note</button>
+              <button type="button" onClick={generateSoap} disabled={!canEdit || isGenerating || !rawInput.trim()} className="scribe-button scribe-button-primary">{isGenerating ? 'Generating SOAP Note…' : 'Generate Structured SOAP Note'}</button>
             </div>
-            <textarea aria-label="Encounter transcript" value={rawInput} onChange={event => setRawInput(event.target.value)} onBlur={event => setRawInput(applyClinicalCorrections(event.target.value))} disabled={!canEdit} placeholder="Speak or enter clinical shorthand here…" className="w-full min-h-[90px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" />
-            <p className="text-xs text-slate-500">{mode === 'ambient' ? 'Ambient capture is ready for the encounter.' : 'Direct dictation is ready for clinician-entered narration.'} {captureStatus}</p>
+            <textarea aria-label="Encounter transcript" value={rawInput} onChange={event => setRawInput(event.target.value)} onBlur={event => setRawInput(applyClinicalCorrections(event.target.value))} disabled={!canEdit || isGenerating} placeholder="Speak or enter clinical shorthand here…" className="w-full min-h-[90px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" />
+            <p role="status" className="text-xs text-slate-500">{mode === 'ambient' ? 'Ambient capture is ready for the encounter.' : 'Direct dictation is ready for clinician-entered narration.'} {captureStatus}</p>
+            {generationError && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{generationError}</p>}
           </div>
         </section>
 
         <section className="bg-white border border-slate-300 rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-300 bg-slate-50"><h2 className="font-semibold text-slate-800">Editable SOAP Workspace</h2><p className="text-xs text-slate-500 mt-1">Review every field before signing. Unmeasured tests and scores are never inferred.</p></div>
           <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-            {(Object.keys(soap) as Array<keyof SoapNote>).map(section => (
-              <label key={section} className="space-y-2"><span className="block text-sm font-semibold text-slate-700 capitalize">{section}</span><textarea value={soap[section]} onChange={event => updateSoap(section, event.target.value)} disabled={!canEdit} className="w-full min-h-[170px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" /></label>
+            {SOAP_SECTIONS.map(section => (
+              <label key={section} className="space-y-2"><span className="block text-sm font-semibold text-slate-700 capitalize">{section}</span><textarea aria-label={section} value={soap[section]} onChange={event => updateSoap(section, event.target.value)} disabled={!canEdit || isGenerating} placeholder="Generate a SOAP draft or enter clinician-reviewed documentation." className="w-full min-h-[170px] rounded-lg border border-slate-300 bg-white p-3 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100 disabled:text-slate-500" /></label>
             ))}
           </div>
         </section>
@@ -172,13 +189,13 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
         <section className="bg-white border border-slate-300 rounded-xl shadow-sm p-4 space-y-3">
           <div><h2 className="font-semibold text-slate-800">Clinical Documentation Refinement &amp; Audit Defense</h2><p className="text-xs text-slate-500 mt-1">Apply a focused refinement, then review the updated SOAP text.</p></div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={!canEdit} onClick={() => applySmartEdit('audit')} className="scribe-action-chip">Medicare Part B Skilled Justification</button>
-            <button type="button" disabled={!canEdit} onClick={() => applySmartEdit('cpt')} className="scribe-action-chip">Align with CPT 97116 &amp; 97112</button>
-            <button type="button" disabled={!canEdit} onClick={() => applySmartEdit('concise')} className="scribe-action-chip">Condense Narrative</button>
+            <button type="button" disabled={!canRefine} onClick={() => applySmartEdit('audit')} className="scribe-action-chip">Medicare Part B Skilled Justification</button>
+            <button type="button" disabled={!canRefine} onClick={() => applySmartEdit('cpt')} className="scribe-action-chip">Align with CPT 97116 &amp; 97112</button>
+            <button type="button" disabled={!canRefine} onClick={() => applySmartEdit('concise')} className="scribe-action-chip">Condense Narrative</button>
           </div>
           <div className="flex gap-2">
-            <input aria-label="Documentation refinement request" value={smartEditPrompt} onChange={event => setSmartEditPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter') submitSmartEdit(); }} disabled={!canEdit} placeholder="Ask ARIA to edit or format your note..." className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100" />
-            <button type="button" onClick={submitSmartEdit} disabled={!canEdit || !smartEditPrompt.trim()} className="scribe-button scribe-button-primary"><Send className="h-4 w-4 shrink-0" aria-hidden="true" />Apply</button>
+            <input aria-label="Documentation refinement request" value={smartEditPrompt} onChange={event => setSmartEditPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && canRefine) submitSmartEdit(); }} disabled={!canRefine} placeholder="Ask ARIA to edit or format your note..." className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100" />
+            <button type="button" onClick={submitSmartEdit} disabled={!canRefine || !smartEditPrompt.trim()} className="scribe-button scribe-button-primary"><Send className="h-4 w-4 shrink-0" aria-hidden="true" />Apply</button>
           </div>
         </section>
       </main>
@@ -186,7 +203,7 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
       <footer className="sticky bottom-0 z-10 border-t border-slate-300 bg-white/95 backdrop-blur p-4 shadow-[0_-4px_8px_-4px_rgb(15,23,42,0.2)]">
         <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {signed ? <div role="status" className="scribe-sign-confirmation"><CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" /><span>Signed by J. Morales, PT &amp; Synced to eCW Encounter (10/13/2026) — EDI 837 CPT Codes 97116, 97112 Verified</span></div> : <span className="text-xs text-slate-500">Review the complete note before signing to eClinicalWorks.</span>}
-          <button type="button" onClick={signAndSync} disabled={!canEdit} className="scribe-button scribe-button-primary"><FileSignature className="h-4 w-4 shrink-0" aria-hidden="true" />Sign &amp; Sync to eClinicalWorks (eCW)</button>
+          <button type="button" onClick={signAndSync} disabled={!canRefine} className="scribe-button scribe-button-primary"><FileSignature className="h-4 w-4 shrink-0" aria-hidden="true" />Sign &amp; Sync to eClinicalWorks (eCW)</button>
         </div>
       </footer>
     </div>

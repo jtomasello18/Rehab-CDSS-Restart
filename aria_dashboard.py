@@ -725,6 +725,44 @@ def render_literature(case):
             st.warning("Please pick a rating first.")
 
 
+def render_scribe(figma_component, role="Viewer"):
+    """Consume each generation event once and return the result to React."""
+    from professor_aria.scribe import generate_soap, validate_soap
+
+    provider_role = st.session_state.get("user_role", role)
+    event = figma_component(
+        view="scribe", role=provider_role, key="aria_charting",
+        soap=st.session_state.get("charting_soap_note", {}),
+        transcript=st.session_state.get("charting_transcript", ""),
+        generation=st.session_state.get("charting_generation"),
+        signed=st.session_state.get("charting_signed", False),
+    )
+    if provider_role != "PT" or not isinstance(event, dict):
+        return
+    request_id = event.get("requestId")
+    if not isinstance(request_id, str) or not request_id or len(request_id) > 128:
+        return
+    if event.get("type") == "generate_soap":
+        if request_id == st.session_state.get("charting_last_request"):
+            return
+        st.session_state.charting_last_request = request_id
+        transcript = event.get("transcript", "")
+        if isinstance(transcript, str):
+            st.session_state.charting_transcript = transcript
+        st.session_state.charting_signed = False
+        with st.spinner("ARIA is generating the SOAP draft…"):
+            result = generate_soap(transcript, event.get("discipline", "PT Skilled SOAP"))
+        st.session_state.charting_soap_note = result["soap"]
+        st.session_state.charting_generation = {"requestId": request_id, "error": result["error"]}
+        st.rerun()
+    elif event.get("type") == "signed" and not (st.session_state.get("charting_generation") or {}).get("error"):
+        try:
+            st.session_state.charting_soap_note = validate_soap(event.get("soap"))
+        except ValueError:
+            return
+        st.session_state.charting_signed = True
+
+
 def render_professor_dashboard(figma_component, role="Viewer"):
     """Run the professor's dashboard inside the host application's ARIA stage."""
     inject_style()
@@ -785,14 +823,6 @@ def render_professor_dashboard(figma_component, role="Viewer"):
     elif view == V_MEASURES_TRENDS:
         figma_component(view="patient_biometrics", role=st.session_state.get("user_role", "Viewer"))
     elif view == V_SCRIBE:
-        charting_note = figma_component(
-            view="scribe",
-            role=st.session_state.get("user_role", "Viewer"),
-            soap=st.session_state.get("charting_soap_note", {}),
-            signed=st.session_state.get("charting_signed", False),
-        )
-        if isinstance(charting_note, dict) and charting_note.get("type") == "signed":
-            st.session_state.charting_soap_note = charting_note.get("soap", {})
-            st.session_state.charting_signed = True
+        render_scribe(figma_component, role)
     elif view == V_EVIDENCE:
         render_literature(case)
