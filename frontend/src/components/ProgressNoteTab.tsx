@@ -81,10 +81,6 @@ function PatientBanner() {
         <div className="min-w-0 flex-1"><div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Primary Diagnosis</div><div className="mt-1 font-medium">12 weeks post-L MCA ischemic stroke</div><p className="mt-1 text-xs text-slate-500">IRF discharge 2 weeks ago · Outpatient evaluation today</p><p className="mt-1 text-xs text-amber-800">Mild expressive aphasia · Right dominant hemiparesis</p></div>
         <div className="min-w-0 flex-1"><div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Shared Patient Goals</div><p className="mt-1">Walk to mailbox independently · Feed self using dominant right hand</p></div>
       </div>
-      <div aria-label="Current objective exam" className="mt-4 border-t border-slate-100 pt-3 text-xs leading-relaxed text-slate-600">
-        <p><strong>10/13 exam:</strong> 10MWT 0.35 m/s · BBS 38/56 · FMA-UE 22/66 · MAS: R elbow flexors Grade 2, R ankle plantarflexors Grade 1+ · Brunnstrom: R UE Stage 3, R LE Stage 4.</p>
-        <p className="mt-1"><strong>Gait:</strong> Hemi-walker with Standby Assist (SBA) · 50 ft; absent R heel strike, severe R swing-phase foot drop, R hip hiking/circumduction.</p>
-      </div>
     </div>
   );
 }
@@ -104,7 +100,6 @@ function CareTeamPulse({ activeView, onSelect }: { activeView: Specialty; onSele
               className={cn('flex min-w-0 flex-col items-start gap-3 rounded-xl border bg-white p-4 text-left shadow-sm transition hover:border-[#145b6e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#145b6e] focus-visible:ring-offset-2', activeView === team.id ? 'border-[#145b6e] ring-1 ring-[#145b6e]' : 'border-slate-200')}>
               <span className="flex items-center gap-2 text-sm font-semibold text-slate-800"><Icon className="h-4 w-4 shrink-0 text-[#145b6e]" aria-hidden="true" />{team.label}</span>
               <Badge tone={team.tone}>{team.badge}</Badge>
-              <span className="text-xs leading-relaxed text-slate-600">{team.summary}</span>
             </button>
           );
         })}
@@ -178,7 +173,6 @@ function CPGPanel({ specialty, evidence, onOpen }: { specialty: Specialty; evide
           <h3 className="text-sm font-semibold text-slate-700">{plan.title}</h3>
           <span title="Recommendation grades and page labels supplied in the case reference; not verified against the retrieved PDFs." className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500">Case reference</span>
         </div>
-        {plan.scope && <p className="mb-4 text-xs leading-relaxed text-amber-800">{plan.scope}</p>}
         {sources.length > 0 && <div className="mb-4">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Matched Evidence Bridge PDF Passages</h3>
@@ -233,7 +227,6 @@ export default function App({ args = {}, onOpenEvidenceBridge }: { args?: Stream
           <div className="relative"><label htmlFor="tracker-specialty" className="sr-only">Specialty view</label><select id="tracker-specialty" value={activeView} onChange={e => setActiveView(e.target.value as Specialty)} className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm font-semibold shadow-sm focus:border-[#145b6e] focus:outline-none focus:ring-2 focus:ring-[#145b6e]/25 sm:w-72">{specialties.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select><ActiveIcon className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[#145b6e]" aria-hidden="true" /><ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-slate-500" aria-hidden="true" /></div>
         </div>
         <CareTeamPulse activeView={activeView} onSelect={setActiveView} />
-        <p aria-label="Clinical timeline" className="text-xs font-medium leading-relaxed text-slate-600">{encounters.map(e => `${e.date} (Wk ${e.week} · ${e.label})`).join(" → ")}</p>
         <section id="specialty-view" aria-label={`${specialties.find(s => s.id === activeView)!.label} details`} className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <ActiveAlerts specialty={activeView} />
           {activeView === 'physician' && <MedicationPanel />}

@@ -29,7 +29,8 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
   assert.match(markup, /Vance, E\. Outpatient Eval \(10\/13\)/);
   const normativePanel = markup.slice(markup.indexOf('Normative Performance Panel'));
   assert.doesNotMatch(normativePanel, /Not supplied|Not recorded|Not re-measured|missing reference values and measurements/);
-  assert.match(normativePanel, /IRF Discharge Baseline \(09\/29\) vs\. Outpatient Evaluation \(10\/13\)/);
+  assert.match(normativePanel, /Age\/Gender Matched Reference Values \(M, 65–70\)/);
+  assert.doesNotMatch(normativePanel, /IRF Discharge Baseline \(09\/29\) vs\. Outpatient Evaluation \(10\/13\)/);
   if (role === 'OT') {
     assert.match(normativePanel, /Grade 2 \(Persistent R elbow flexor tone\)/);
     assert.doesNotMatch(normativePanel, /Rigid in flexion/);
@@ -42,8 +43,17 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
   assert.doesNotMatch(markup, /Matched Evidence Bridge PDF Passages/);
   assert.doesNotMatch(markup, /Patient-Specific Action|Missing dated measurements|Clopidogrel|Atorvastatin|Lisinopril|Grade 3|Gr 3/);
   assert.equal((markup.match(/data-safety-flag/g) ?? []).length, 2);
-  assert.match(markup, /Hemi-walker with Standby Assist \(SBA\) · 50 ft/);
-  assert.match(markup, /R ankle plantarflexors Grade 1\+/);
+  assert.doesNotMatch(markup, /Current objective exam|10\/13 exam:|<strong>Gait:|Clinical timeline|Scope:|Regressing \(Last 7d\)|Tone Barrier \/ ADL \+/);
+  const pulse = markup.slice(markup.indexOf('aria-labelledby="care-team-title"'), markup.indexOf('id="specialty-view"'));
+  assert.equal((pulse.match(/>Regressing<\/span>/g) ?? []).length, 1);
+  assert.equal((pulse.match(/>Progressing<\/span>/g) ?? []).length, 2);
+  assert.match(pulse, /Medication Review Flagged/);
+  assert.doesNotMatch(pulse, /BBS:|Baclofen doubled|FMA-UE:|Naming Accuracy:/);
+  assert.equal((pulse.match(/bg-emerald-50/g) ?? []).length, 2);
+  if (role === 'PT') {
+    assert.match(markup, /Hemi-walker · Standby Assist \(SBA\) · 50 ft/);
+    assert.match(markup, /Right ankle plantarflexors: MAS Grade 1\+/);
+  }
   assert.match(markup, /Case reference/);
   if (role === 'MD') {
     const table = markup.match(/<table[^>]*>[\s\S]*?<\/table>/)![0];

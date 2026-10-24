@@ -93,15 +93,11 @@ export function metricDelta(metric: TrackerMetric): { tone: Tone; text: string }
 }
 
 export const careTeam = [
-  { id: 'pt', label: 'Physical Therapy (PT)', tone: 'danger', badge: 'Regressing (Last 7d)',
-    summary: 'BBS: 42 → 38/56 (-4) · 10MWT: 0.48 → 0.35 m/s · 2 Near-Falls' },
-  { id: 'physician', label: 'Physician / Neuro (MD)', tone: 'danger', badge: 'Medication Review Flagged',
-    summary: 'Baclofen doubled (5mg → 10mg TID on 10/06) · Gait/balance decline may be correlated with titration' },
-  { id: 'ot', label: 'Occupational Therapy (OT)', tone: 'warning', badge: 'Tone Barrier / ADL +',
-    summary: 'FMA-UE: 18 → 22/66 (+4) · R Elbow MAS Gr 2 · R Ankle MAS Gr 1+ · Self-Feeding 25%' },
-  { id: 'slp', label: 'Speech-Language (SLP)', tone: 'success', badge: 'Progressing',
-    summary: 'Naming Accuracy: 37% → 55% (+18%) · 20-min Fatigue Window' },
-] satisfies { id: Specialty; label: string; tone: Tone; badge: string; summary: string }[];
+  { id: 'pt', label: 'Physical Therapy (PT)', tone: 'danger', badge: 'Regressing' },
+  { id: 'physician', label: 'Physician / Neuro (MD)', tone: 'danger', badge: 'Medication Review Flagged' },
+  { id: 'ot', label: 'Occupational Therapy (OT)', tone: 'success', badge: 'Progressing' },
+  { id: 'slp', label: 'Speech-Language (SLP)', tone: 'success', badge: 'Progressing' },
+] satisfies { id: Specialty; label: string; tone: Tone; badge: string }[];
 
 export const safetyFlags: Record<Specialty, { title: string; text: string; tone: 'danger' | 'warning' | 'info' }[]> = {
   pt: [
@@ -125,10 +121,9 @@ export const safetyFlags: Record<Specialty, { title: string; text: string; tone:
 type GuidelineItem = { text: string; citation: string };
 // Citation labels are supplied by the case template. They are not verified
 // against the separately retrieved PDFs; only those PDFs have physical pages.
-export const specialtyPlans: Record<Specialty, { title: string; scope?: string; recommended: GuidelineItem[]; discouraged: GuidelineItem[] }> = {
+export const specialtyPlans: Record<Specialty, { title: string; recommended: GuidelineItem[]; discouraged: GuidelineItem[] }> = {
   pt: {
     title: 'APTA Clinical Practice Guideline to Improve Locomotor Function Following Chronic Stroke, 2020',
-    scope: 'Scope: the 2020 locomotor CPG concerns injuries >6 months old; Ed is at week 12. Review applicability before using its intensity targets.',
     recommended: [
       { text: 'Moderate-to-High Intensity Walking Training (70–85% HRmax)', citation: 'Strong Recommendation, p. 11' },
       { text: 'Task-Specific Overground Stepping Practice to Target Gait Speed', citation: 'Strong Recommendation, p. 12' },
@@ -193,7 +188,7 @@ export type NormativeComparison = {
 // Case values and benchmark numbers supplied for this Ed Vance scenario.
 // Only the linked interpretation/target is verified by each reference; no
 // reference is represented as validating all the configured cohort averages.
-export const normativePanelDescription = 'IRF Discharge Baseline (09/29) vs. Outpatient Evaluation (10/13) — Age/Gender Matched (M, 65–70)';
+export const normativePanelDescription = 'Age/Gender Matched Reference Values (M, 65–70)';
 
 export const comparisons: Record<Specialty, NormativeComparison[]> = {
   pt: [
