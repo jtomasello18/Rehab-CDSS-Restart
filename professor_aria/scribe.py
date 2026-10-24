@@ -22,6 +22,10 @@ therapy and multidisciplinary rehabilitation. Convert the supplied clinician
 transcript or clinical shorthand into a professional, concise SOAP draft for the
 selected documentation template.
 
+Use natural clinical grammar, never phrases such as 'the patient reports feels'.
+Avoid repeating 'the patient reports' in every sentence. Use scannable Objective
+bullets and a numbered Plan when supported by the source.
+
 Use ONLY the supplied encounter transcript. Expand standard clinical shorthand
 without changing its meaning. Separate patient-reported information (subjective)
 from measured findings and performed interventions (objective), supported clinical
@@ -82,17 +86,47 @@ def generate_soap(transcript: str, template: str = 'PT Skilled SOAP') -> dict:
         return _failure('The transcript exceeds 24,000 characters. Shorten it and try again.')
     if not isinstance(template, str) or template not in TEMPLATES:
         return _failure('Choose a supported clinical documentation template.')
+    return _request_soap({
+        'documentation_template': TEMPLATES[template],
+        'transcript': transcript.strip(),
+    }, SYSTEM_PROMPT)
+
+
+def refine_soap(soap: object, instruction: str, template: str = 'PT Skilled SOAP') -> dict:
+    """Apply a clinician's edit to the supplied draft without inserting new facts."""
+    try:
+        note = validate_soap(soap)
+    except ValueError:
+        return _failure('Provide a complete four-section SOAP draft before refining it.')
+    if not isinstance(instruction, str) or not instruction.strip() or len(instruction) > 2000:
+        return _failure('Enter a refinement instruction of 1–2,000 characters.')
+    if sum(map(len, note.values())) > 40000:
+        return _failure('The SOAP draft is too long to refine. Shorten it and try again.')
+    if not isinstance(template, str) or template not in TEMPLATES:
+        return _failure('Choose a supported clinical documentation template.')
+    return _request_soap({
+        'documentation_template': TEMPLATES[template],
+        'soap': note,
+        'clinician_edit_instruction': instruction.strip(),
+    }, SYSTEM_PROMPT + """
+This request edits an existing SOAP draft. Apply the clinician_edit_instruction
+to its wording, organization or emphasis. Preserve clinical values, negation,
+medication doses, attribution and uncertainty. Do not append the instruction as
+note content. Do not invent treatment activities, minutes, units or coverage
+claims, even if requested. Clearly distinguish planned from performed services.
+Return all four updated SOAP strings using the same JSON schema.
+""")
+
+
+def _request_soap(payload: dict, system: str) -> dict:
     try:
         with _client() as client:
             response = client.messages.create(
                 model=os.getenv('ARIA_SCRIBE_MODEL', 'claude-sonnet-5'),
                 max_tokens=2400,
                 timeout=12.0,
-                system=SYSTEM_PROMPT,
-                messages=[{'role': 'user', 'content': json.dumps({
-                    'documentation_template': TEMPLATES[template],
-                    'transcript': transcript.strip(),
-                }, ensure_ascii=False)}],
+                system=system,
+                messages=[{'role': 'user', 'content': json.dumps(payload, ensure_ascii=False)}],
             )
         if getattr(response, 'stop_reason', None) == 'max_tokens':
             return _failure('Claude returned an incomplete draft. Please try again.')

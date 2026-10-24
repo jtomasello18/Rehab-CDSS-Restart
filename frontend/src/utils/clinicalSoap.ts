@@ -11,7 +11,7 @@ const sectionNames: Record<string, Section> = {
 
 export function expandClinicalAbbreviations(text: string): string {
   let value = applyClinicalCorrections(text)
-    .replace(/\bpt(?=\s+(?:reports|states|denies|is|presents|wants|goals?))/gi, 'patient')
+    .replace(/\bpt(?=\s+(?:reports|states|denies|feels|endorses|has|is|presents|wants|describes|experiences|goals?))/gi, 'patient')
     .replace(/\bw\/o\s*/gi, 'without ').replace(/\bw\/\s*/gi, 'with ')
     .replace(/\bs\/p\s*/gi, 'following ').replace(/\bc\/o\s*/gi, 'reports ')
     .replace(/\bd\/t\s*/gi, 'associated with ')
@@ -49,7 +49,11 @@ export function expandClinicalAbbreviations(text: string): string {
     [/\bStg\b/gi, 'Stage'],
     [/\bf\/u\b/gi, 'follow-up'], [/\bfxn\b/gi, 'function'],
   ];
-  for (const [pattern, replacement] of expansions) value = value.replace(pattern, replacement);
+  for (const [pattern, replacement] of expansions) {
+    // Keep already expanded labels such as "Berg Balance Scale (BBS)" stable.
+    value = value.replace(pattern, (match, offset: number, source: string) =>
+      source[offset - 1] === '(' && source[offset + match.length] === ')' ? match : replacement);
+  }
   value = value.replace(/(\d)\s*(mg|ft|lbs|sec|mins?)\b/gi, '$1 $2')
     .replace(/\bft\b/gi, 'feet').replace(/\bsec\b/gi, 'seconds')
     .replace(/\bmins?\b/gi, 'minutes').replace(/(\d)\s*s\b/g, '$1 seconds')
@@ -80,11 +84,21 @@ function objectiveLine(text: string): string {
   return `• ${value}`;
 }
 function subjectiveLine(text: string): string {
-  const expanded = expandClinicalAbbreviations(text);
-  if (/^(?:patient|the patient)\b/i.test(expanded)) return finishSentence(expanded);
+  const expanded = expandClinicalAbbreviations(text).replace(/\breports\s+(feels|denies|endorses|has|is)\b/gi, '$1');
+  if (/^(?:patient|the patient|he|she|they|his|her|their)\b/i.test(expanded)) return finishSentence(expanded);
+  if (/^\d+-year-old\b/i.test(expanded)) return finishSentence(`Patient is a ${expanded}`);
   if (/^goals?\b/i.test(expanded)) return finishSentence(`Patient-stated goal: ${expanded.replace(/^goals?\s*:?\s*/i, '')}`);
-  if (/^(?:reports|states|denies)\b/i.test(expanded)) return finishSentence(`The patient ${expanded}`);
+  if (/^(?:reports|states|denies|feels|endorses|has|is|presents|wants|describes|experiences)\b/i.test(expanded)) return finishSentence(`The patient ${expanded}`);
   return finishSentence(`The patient reports ${expanded}`);
+}
+
+function subjectiveParagraph(lines: string[]): string {
+  // A neutral pronoun avoids assuming demographics absent from the source.
+  return lines.map((line, index) => {
+    const sentence = subjectiveLine(line);
+    return index ? sentence.replace(/^(?:The patient|Patient)\s+(reports|states|denies|feels|endorses|has|is|presents|wants|describes|experiences)\b/i,
+      (_, verb: string) => `They ${verb.toLowerCase() === 'has' ? 'have' : verb.toLowerCase() === 'is' ? 'are' : verb.toLowerCase() === 'denies' ? 'deny' : verb.replace(/s$/i, '')}`) : sentence;
+  }).join(' ');
 }
 
 /** Never backfill a vignette's demographics, scores, dose changes or care plan. */
@@ -113,7 +127,7 @@ export function expandClinicalShorthand(transcript: string, template = 'PT Skill
   const result = Object.fromEntries(sections.map(section => [section,
     groups[section].length ? section === 'objective' ? groups[section].map(objectiveLine).join('\n')
       : section === 'plan' ? groups[section].map((line, index) => `${index + 1}. ${polished(line)}`).join('\n')
-        : groups[section].map(section === 'subjective' ? subjectiveLine : polished).join(' ')
+        : section === 'subjective' ? subjectiveParagraph(groups[section]) : groups[section].map(polished).join(' ')
       : section === 'assessment' ? `A clinician must complete the ${discipline} assessment from the documented findings; no additional clinical conclusions were inferred.`
         : `Not documented in the source transcript; clinician completion required.`,
   ])) as SoapNote;

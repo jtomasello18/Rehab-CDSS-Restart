@@ -727,8 +727,8 @@ def render_literature(case):
 
 
 def render_scribe(figma_component, role="Viewer"):
-    """Consume each generation event once and return the result to React."""
-    from professor_aria.scribe import generate_soap, validate_soap, SOAP_FIELDS
+    """Consume each generation/refinement event once and return its result."""
+    from professor_aria.scribe import generate_soap, refine_soap, validate_soap, SOAP_FIELDS, TEMPLATES
 
     provider_role = st.session_state.get("user_role", role)
     event = figma_component(
@@ -746,7 +746,7 @@ def render_scribe(figma_component, role="Viewer"):
     request_id = event.get("requestId")
     if not isinstance(request_id, str) or not request_id or len(request_id) > 128:
         return
-    if event.get("type") == "generate_soap":
+    if event.get("type") in {"generate_soap", "refine_soap"}:
         if request_id == st.session_state.get("charting_last_request"):
             return
         st.session_state.charting_last_request = request_id
@@ -757,16 +757,27 @@ def render_scribe(figma_component, role="Viewer"):
         st.session_state.charting_discipline = event.get("discipline", "PT Skilled SOAP")
         with st.spinner("ARIA is generating the SOAP draft…"):
             try:
-                result = generate_soap(transcript, event.get("discipline", "PT Skilled SOAP"))
+                if event["type"] == "refine_soap":
+                    result = refine_soap(event.get("soap"), event.get("instruction"), event.get("discipline", "PT Skilled SOAP"))
+                else:
+                    result = generate_soap(transcript, event.get("discipline", "PT Skilled SOAP"))
                 result["soap"] = validate_soap(result["soap"])
                 result["error"] = result.get("error")
             except Exception:
                 message = "Claude could not complete the SOAP request. Review the local draft or retry."
                 result = {"soap": {field: message for field in SOAP_FIELDS}, "error": message}
         generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="microseconds")
+        # A failed edit must survive navigation with the clinician's draft intact.
+        retained_refinement = False
+        if event["type"] == "refine_soap" and result["error"]:
+            try:
+                result["soap"] = validate_soap(event.get("soap"))
+                retained_refinement = True
+            except ValueError:
+                pass
         st.session_state.charting_soap_note = result["soap"]
         st.session_state.charting_generated_at = generated_at
-        st.session_state.charting_draft_source = "claude" if not result["error"] else "error"
+        st.session_state.charting_draft_source = "manual" if retained_refinement else "claude" if not result["error"] else "error"
         st.session_state.charting_generation = {"requestId": request_id, "error": result["error"], "generated_at": generated_at}
         st.rerun()
     elif event.get("type") == "signed":
@@ -779,6 +790,10 @@ def render_scribe(figma_component, role="Viewer"):
             return
         st.session_state.charting_signed = True
         st.session_state.charting_draft_source = source
+        if event.get("discipline") in TEMPLATES:
+            st.session_state.charting_discipline = event["discipline"]
+        if isinstance(event.get("transcript"), str):
+            st.session_state.charting_transcript = event["transcript"]
 
 
 def render_professor_dashboard(figma_component, role="Viewer"):

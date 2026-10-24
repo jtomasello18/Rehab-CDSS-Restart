@@ -84,6 +84,29 @@ class ScribeTests(unittest.TestCase):
                 self.assertTrue(scribe.generate_soap(text, template)['error'])
         factory.assert_not_called()
 
+    def test_refinement_calls_claude_with_current_note_and_instruction(self):
+        revised = dict(SOAP, assessment='Foot clearance deficits require reassessment of gait safety.')
+        context, client = mocked_client('Here is the edit:\n```json\n'+json.dumps(revised)+'\n```')
+        with patch.object(scribe, '_client', return_value=context):
+            result = scribe.refine_soap(SOAP, 'Emphasize gait safety.', 'OT Functional SOAP')
+        self.assertEqual(result, {'soap': revised, 'error': None})
+        call = client.messages.create.call_args.kwargs
+        payload = json.loads(call['messages'][0]['content'])
+        self.assertEqual(payload['soap'], SOAP)
+        self.assertEqual(payload['clinician_edit_instruction'], 'Emphasize gait safety.')
+        self.assertEqual(payload['documentation_template'], 'occupational therapy')
+        self.assertIn('Do not invent treatment activities, minutes, units', call['system'])
+        self.assertEqual(call['timeout'], 12.0)
+
+    def test_bad_refinement_input_does_not_call_claude(self):
+        with patch.object(scribe, '_client') as factory:
+            for note, instruction, template in [({}, 'Edit', 'PT Skilled SOAP'),
+                    (SOAP, None, 'PT Skilled SOAP'), (SOAP, '', 'PT Skilled SOAP'),
+                    (SOAP, 'x'*2001, 'PT Skilled SOAP'), (SOAP, 'Edit', 'bad'),
+                    (dict(SOAP, objective='x'*40001), 'Edit', 'PT Skilled SOAP')]:
+                self.assertTrue(scribe.refine_soap(note, instruction, template)['error'])
+        factory.assert_not_called()
+
     def test_cloud_secret_key_is_resolved_only_on_the_server(self):
         with patch.dict(os.environ, {'ANTHROPIC_API_KEY': ''}), \
              patch('streamlit.secrets', {'ANTHROPIC_API_KEY': 'cloud-test-key'}), \
@@ -152,6 +175,30 @@ class ScribeBridgeTests(unittest.TestCase):
         self.assertFalse(app.exception)
         self.assertIsNone(app.session_state['charting_generation']['error'])
         self.assertEqual(app.session_state['charting_soap_note'], SOAP)
+
+    def test_refinement_is_processed_once_and_preserves_specialty(self):
+        app = self.app()
+        app.session_state['scribe_event'] = {'type': 'refine_soap', 'requestId': 'refine-1',
+            'soap': SOAP, 'instruction': 'Emphasize safety', 'discipline': 'OT Functional SOAP', 'transcript': TRANSCRIPT}
+        revised = dict(SOAP, plan='Reassess walking safety at the next encounter.')
+        with patch.object(scribe, 'refine_soap', return_value={'soap': revised, 'error': None}) as refine:
+            app.run()
+            app.run()
+        refine.assert_called_once_with(SOAP, 'Emphasize safety', 'OT Functional SOAP')
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state['last_scribe_args']['soap'], revised)
+        self.assertEqual(app.session_state['last_scribe_args']['discipline'], 'OT Functional SOAP')
+
+    def test_failed_refinement_retains_clinician_note_across_reruns(self):
+        app = self.app()
+        app.session_state['scribe_event'] = {'type': 'refine_soap', 'requestId': 'refine-fail',
+            'soap': SOAP, 'instruction': 'Emphasize safety', 'discipline': 'PT Skilled SOAP'}
+        with patch.object(scribe, 'refine_soap', return_value=scribe._failure('Timed out')):
+            app.run()
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state['last_scribe_args']['soap'], SOAP)
+        self.assertEqual(app.session_state['last_scribe_args']['draft_source'], 'manual')
+        self.assertEqual(app.session_state['last_scribe_args']['generation']['error'], 'Timed out')
 
     def test_unexpected_backend_failure_still_returns_a_completion_timestamp(self):
         app = self.app()
