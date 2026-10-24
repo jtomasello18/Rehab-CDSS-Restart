@@ -8,6 +8,14 @@ load_dotenv()
 import streamlit as st
 
 from professor_aria.branding import INTERACTION_STYLE, PAGE_ICON
+import aria_dashboard
+
+# Streamlit can retain imported modules across script/deployment reruns. Refresh
+# the older navigation before importing its renderer so the tab reads ARIA Scribe.
+if aria_dashboard.V_SCRIBE != "ARIA Scribe":
+    import importlib
+    importlib.reload(aria_dashboard)
+
 from aria_dashboard import render_professor_dashboard
 from professor_aria.vignette import ED_VANCE_ENCOUNTERS
 from figma_component import render as figma_component

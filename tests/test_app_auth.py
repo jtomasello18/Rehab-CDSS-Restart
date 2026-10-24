@@ -70,6 +70,22 @@ class ClinicalGatewayTests(unittest.TestCase):
         self.assertEqual(app.session_state['page'], 'schedule')
         self.assertTrue(app.session_state['authenticated'])
 
+    def test_cached_aria_chart_navigation_refreshes_to_scribe(self):
+        import aria_dashboard
+        app = self.app()
+        app.session_state['authenticated'] = True
+        app.session_state['user_role'] = 'PT'
+        app.session_state['page'] = 'aria_dashboard'
+        app.session_state['view'] = 'ARIA Chart'
+        with patch.object(aria_dashboard, 'V_SCRIBE', 'ARIA Chart'), \
+             patch.object(aria_dashboard, 'VIEWS', [*aria_dashboard.VIEWS[:-1], 'ARIA Chart']):
+            app.run()
+        self.assertFalse(app.exception)
+        tabs = app.radio(key='view')
+        self.assertEqual(tabs.options[-1], 'ARIA Scribe')
+        self.assertNotIn('ARIA Chart', tabs.options)
+        self.assertEqual(tabs.value, 'ARIA Scribe')
+
     def test_gateway_sign_in_opens_schedule_without_a_second_login_form(self):
         app = self.app().run()
         app.text_input(key='gateway_username').set_value('ARIAprovider')
