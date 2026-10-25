@@ -148,7 +148,6 @@ export default function EducationTab({ args = {} }: { args?: Args }) {
       <article className="edu-stat edu-credit-stat"><span className="edu-stat-label">Point-of-Care Credits</span>
         <strong className="edu-stat-value" data-testid="learning-hours">{overall.hours.toFixed(2)}<small> / 24.0</small></strong>
         <span>CEU / CME Hours</span><span className="edu-credit-badge">0.25 hours per completed case</span>
-        <small className="edu-muted">0.05 per answer + completion bonus · {overall.completed}/4 modules complete. 24-hour Biennial Target.</small>
       </article>
       <article className="edu-stat edu-domain-stat"><span className="edu-stat-label">Competency Domain Breakdown</span>
         {overall.domains.map(domain => <div className="edu-domain" key={domain.id}>
