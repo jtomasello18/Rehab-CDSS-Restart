@@ -4,15 +4,13 @@
 .aria-education button { font: inherit; cursor: pointer; transition: background .15s, border-color .15s, box-shadow .15s; }
 .aria-education button:disabled { cursor: default; opacity: .48; }
 .aria-education button:focus-visible, .aria-education a:focus-visible, .aria-education summary:focus-visible { outline: 3px solid #2a8a9e; outline-offset: 3px; }
-.edu-header { display: flex; align-items: center; gap: 16px; background: white; border: 1px solid #cbd5e1; border-radius: 12px; padding: 25px; }
+.edu-header { margin-bottom: 24px; display: flex; align-items: center; gap: 16px; background: white; border: 1px solid #cbd5e1; border-radius: 12px; padding: 25px; }
 .edu-logo { width: 60px; height: 60px; flex-shrink: 0; }
 .edu-header h1 { font-size: 24px; font-weight: 700; color: #0f172a; line-height: 1.3; margin: 5px 0; }
 .edu-header h1 span { font-weight: 500; font-size: 20px; }
 .edu-header p { margin: 0; color: #64748b; }
 .edu-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: #64748b; }
-.edu-demo-badge { display: flex; align-items: center; gap: 7px; margin-left: auto; background: #f0f7f9; color: #145b6e; border: 1px solid #d5e6eb; padding: 7px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
-.edu-learning-note { display: flex; gap: 9px; align-items: flex-start; color: #536778; margin: 13px 2px 19px; font-size: 12px; }
-.edu-learning-note svg { flex-shrink: 0; color: #145b6e; }
+
 .edu-dashboard { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(250px, 1.25fr); gap: 14px; margin-bottom: 24px; }
 .edu-stat { background: white; border: 1px solid #d5dfe8; border-radius: 10px; padding: 19px; display: flex; flex-direction: column; gap: 8px; min-width: 0; box-shadow: 0 1px 2px #0f172a05; }
 .edu-stat-label { font-size: 12px; font-weight: 650; color: #475569; }
@@ -125,8 +123,8 @@
 .edu-sync-error { color: #9a3412; background: #fff7ed; }
 .edu-sync-error button { text-decoration: underline; }
 .edu-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-@media (max-width: 1150px) { .edu-dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); } .edu-header { flex-wrap: wrap; } .edu-demo-badge { margin-left: 76px; } .edu-workspace { grid-template-columns: 255px minmax(0, 1fr); gap: 15px; } .edu-question-nav { flex-wrap: wrap; } .edu-question-nav > span { order: 3; width: 100%; } }
-@media (max-width: 760px) { .edu-workspace { grid-template-columns: minmax(0, 1fr); } .edu-roster { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .edu-roster-heading, .edu-roster-footer { grid-column: 1 / -1; } .edu-roster-heading { margin-bottom: 4px; } .edu-patient { margin: 0; } .edu-demo-badge { margin: 0; } .edu-header h1 { font-size: 21px; } .edu-header h1 span { display: block; font-size: 16px; margin-top: 3px; } }
+@media (max-width: 1150px) { .edu-dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); } .edu-header { flex-wrap: wrap; } .edu-workspace { grid-template-columns: 255px minmax(0, 1fr); gap: 15px; } .edu-question-nav { flex-wrap: wrap; } .edu-question-nav > span { order: 3; width: 100%; } }
+@media (max-width: 760px) { .edu-workspace { grid-template-columns: minmax(0, 1fr); } .edu-roster { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .edu-roster-heading, .edu-roster-footer { grid-column: 1 / -1; } .edu-roster-heading { margin-bottom: 4px; } .edu-patient { margin: 0; } .edu-header h1 { font-size: 21px; } .edu-header h1 span { display: block; font-size: 16px; margin-top: 3px; } }
 @media (max-width: 480px) { .edu-header { padding: 18px; gap: 10px; } .edu-logo { width: 42px; height: 42px; } .edu-header > div { flex: 1; min-width: 0; } .edu-header .edu-eyebrow { display: none; } .edu-header p { font-size: 12px; } .edu-dashboard { gap: 9px; } .edu-stat { padding: 13px; } .edu-stat-value { font-size: 29px; } .edu-stat-value small { font-size: 13px; } .edu-domain-stat { grid-column: 1 / -1; } .edu-credit-stat { grid-column: 1 / -1; } .edu-roster { padding: 12px; gap: 8px; } .edu-patient { padding: 10px; } .edu-patient-top { gap: 5px; } .edu-initials { width: 25px; height: 27px; } .edu-patient-top strong { font-size: 12px; } .edu-patient-top small { font-size: 9px; } .edu-patient-count { flex-direction: column; gap: 2px; } .edu-quiz-inner { padding: 16px; } .edu-filters { padding: 13px; } .edu-snapshot > div { grid-template-columns: minmax(0, 1fr); } .edu-question-heading h3 { font-size: 19px; } .edu-question-heading p { font-size: 14px; } .edu-option { padding: 12px 10px; gap: 9px; } .edu-submit-row > .edu-primary { width: 100%; } .edu-question-nav { gap: 8px; } .edu-question-nav button { padding: 9px; font-size: 10px !important; } .edu-rationale { padding: 13px; } }
-@media (max-width: 480px) { .edu-header { display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: start; } .edu-demo-badge { grid-column: 2; justify-self: start; } }
+@media (max-width: 480px) { .edu-header { display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: start; } }
 @media (prefers-reduced-motion: reduce) { .aria-education * { transition: none !important; } }

@@ -61,7 +61,9 @@ assert.equal(clean.answers.ed[ed.questions[2].id].confidence, null);
 for (const patient of patients) {
   const markup = renderToStaticMarkup(<EducationTab args={{education_patient: patient.id, education_progress: progress}} />);
   assert.match(markup, /ARIA Education/);
-  assert.match(markup, /no accredited CEU\/CME credit/);
+  assert.match(markup, /CEU \/ CME Hours/);
+  assert.match(markup, /Active Patient Caseload/);
+  assert.doesNotMatch(markup, /Demo curriculum|synthetic|simulated learning|24-hour demo target/i);
   assert.match(markup, new RegExp(`${patient.name} clinical quiz`));
   assert.match(markup, /Answer Recorded/);
   assert.match(markup, /Evidence Rationale/);

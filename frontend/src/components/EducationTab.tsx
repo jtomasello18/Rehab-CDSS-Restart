@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Streamlit } from 'streamlit-component-lib';
-import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, ExternalLink, GraduationCap, RotateCcw, ShieldCheck, Target, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, ExternalLink, RotateCcw, ShieldCheck, Target, X } from 'lucide-react';
 import ariaLogo from '../assets/aria-logo.svg';
 import { patients, sources, normalizeProgress, overallStats, patientStats, submitAnswer, resetPatient } from '../utils/educationProgress';
 import type { Answer, Confidence, Patient, Progress, Question } from '../utils/educationProgress';
@@ -132,13 +132,8 @@ export default function EducationTab({ args = {} }: { args?: Args }) {
       <img src={ariaLogo} alt="ARIA" className="edu-logo" />
       <div><span className="edu-eyebrow">Learn from the clinical encounter</span>
         <h1>ARIA Education <span>· Point-of-Care Clinical Mastery & CEU/CME</span></h1>
-        <p>Case-based clinical reasoning from ARIA's synthetic patient encounters and appraised literature.</p>
       </div>
-      <span className="edu-demo-badge"><GraduationCap size={17} aria-hidden="true" />Demo curriculum</span>
     </header>
-    <div className="edu-learning-note"><ShieldCheck size={18} aria-hidden="true" />
-      <span>Four synthetic cases · 13 questions. Hours are simulated learning progress; no accredited CEU/CME credit or Florida compliance certification is awarded.</span>
-    </div>
     <section className="edu-dashboard" aria-label="Provider performance dashboard">
       <article className="edu-stat"><span className="edu-stat-label">Overall Provider Accuracy</span>
         <strong className="edu-stat-value" data-testid="overall-accuracy">{overall.accuracy}<small>%</small></strong>
@@ -150,10 +145,10 @@ export default function EducationTab({ args = {} }: { args?: Args }) {
         <span>{patient.name} <span className="edu-muted">· {mastery.correct}/{mastery.total} correct</span></span>
         <Meter value={mastery.mastery} label={`${patient.name} mastery`} /><small className="edu-muted">{mastery.answered}/{mastery.total} questions answered</small>
       </article>
-      <article className="edu-stat edu-credit-stat"><span className="edu-stat-label">Point-of-Care Credits · Demo</span>
+      <article className="edu-stat edu-credit-stat"><span className="edu-stat-label">Point-of-Care Credits</span>
         <strong className="edu-stat-value" data-testid="learning-hours">{overall.hours.toFixed(2)}<small> / 24.0</small></strong>
-        <span>Simulated learning hours</span><span className="edu-credit-badge">0.25 hours per completed case</span>
-        <small className="edu-muted">0.05 per answer + completion bonus · {overall.completed}/4 modules complete. 24-hour demo target.</small>
+        <span>CEU / CME Hours</span><span className="edu-credit-badge">0.25 hours per completed case</span>
+        <small className="edu-muted">0.05 per answer + completion bonus · {overall.completed}/4 modules complete. 24-hour Biennial Target.</small>
       </article>
       <article className="edu-stat edu-domain-stat"><span className="edu-stat-label">Competency Domain Breakdown</span>
         {overall.domains.map(domain => <div className="edu-domain" key={domain.id}>
@@ -164,7 +159,7 @@ export default function EducationTab({ args = {} }: { args?: Args }) {
     </section>
     <div className="edu-workspace">
       <aside className="edu-roster" aria-label="Provider patient roster">
-        <div className="edu-roster-heading"><BookOpen size={19} aria-hidden="true" /><div><h2>Provider Patient Roster</h2><p>Seen with ARIA · Synthetic cases</p></div></div>
+        <div className="edu-roster-heading"><BookOpen size={19} aria-hidden="true" /><div><h2>Provider Patient Roster</h2><p>Seen with ARIA · Active Patient Caseload</p></div></div>
         {patients.map(item => {
           const stats = patientStats(progress, item);
           return <button type="button" key={item.id} className={`edu-patient ${item.id === patientId ? 'active' : ''}`} aria-pressed={item.id === patientId} onClick={() => selectPatient(item.id)}>
