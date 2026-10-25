@@ -21,7 +21,13 @@ assert.equal(trackerMetrics.physician[2].initial, 74);
 assert.ok(Object.values(trackerMetrics).flat().every(metric => metric.prior === null || metric.id === 'baclofen'));
 
 for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
-  const markup = renderToStaticMarkup(<PatientTracker args={{ role }} onOpenEvidenceBridge={() => {}} />);
+  // Old server sessions may still supply matched PDFs. They must not restore
+  // the removed CPG card for any specialty.
+  const markup = renderToStaticMarkup(<PatientTracker args={{ role, trackerEvidence: {
+    sources: { pt: [{ document_id: 'pdf-real', filename: 'Old Guideline.pdf', page_number: 119,
+      text: 'Previously matched guideline passage.', star_rating: 4 }] },
+    error: 'Old guideline retrieval status',
+  } }} />);
   assert.equal((markup.match(/aria-pressed=/g) ?? []).length, 4);
   assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 1);
   assert.equal((markup.match(/data-metric=/g) ?? []).length, 4);
@@ -41,6 +47,8 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
     assert.doesNotMatch(normativePanel, /Stable Sinus Rhythm/);
   }
   assert.doesNotMatch(markup, /Matched Evidence Bridge PDF Passages/);
+  assert.doesNotMatch(markup, /ARIA Clinical Practice Guideline Alerts|Recommended Active Interventions|Discouraged \/ Low-Value Interventions/);
+  assert.doesNotMatch(markup, /APTA Clinical Practice Guideline|ASHA \/ RCSLT Clinical Guidelines|Case reference|Old Guideline\.pdf|Old guideline retrieval status|Open Evidence Bridge/);
   assert.doesNotMatch(markup, /Patient-Specific Action|Missing dated measurements|Clopidogrel|Atorvastatin|Lisinopril|Grade 3|Gr 3/);
   assert.equal((markup.match(/data-safety-flag/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /Current objective exam|10\/13 exam:|<strong>Gait:|Clinical timeline|Scope:|Regressing \(Last 7d\)|Tone Barrier \/ ADL \+/);
@@ -59,7 +67,6 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
     assert.doesNotMatch(card, /<p[ >]/);
     assert.equal((card.match(/<dt[ >]/g) ?? []).length, 3);
   }
-  assert.match(markup, /Case reference/);
   if (role === 'MD') {
     const table = markup.match(/<table[^>]*>[\s\S]*?<\/table>/)![0];
     assert.equal((table.match(/<tr/g) ?? []).length, 2);
@@ -70,17 +77,6 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
   assert.match(markup, role === 'PT' ? /data-metric="tug"/ : role === 'OT' ? /data-metric="mas"/ : role === 'SLP' ? /data-metric="wab"/ : /data-metric="baclofen"/);
 }
 
-const escaped = renderToStaticMarkup(<PatientTracker args={{ role: 'PT', trackerEvidence: {
-  sources: { pt: [{ document_id: 'pdf-real', filename: '<Guideline>.pdf', page_number: 119,
-    text: '<script>unsafe()</script> An exact extracted passage.', star_rating: 4 }] },
-} }} />);
-assert.match(escaped, /&lt;Guideline&gt;\.pdf/);
-assert.match(escaped, /Page 119/);
-assert.match(escaped, /&lt;script&gt;/);
-assert.doesNotMatch(escaped, /<script>/);
-assert.match(escaped, /★★★★☆/);
-assert.match(escaped, /Matched Evidence Bridge PDF Passages/);
-assert.match(escaped, /\[\(Strong Recommendation, p\. 11\)\]/);
 assert.deepEqual(encounters.map(e => [e.date, e.week, e.label]), [
   ['09/29', 10, 'IRF Discharge'], ['10/06', 11, 'MD Follow-up'], ['10/13', 12, 'Outpatient Eval'],
 ]);
@@ -90,4 +86,4 @@ for (const flags of Object.values(safetyFlags)) {
   assert.ok(flags.every(flag => flag.text.split(/(?<=[.!?])\s+/).length <= 2));
 }
 
-console.log('Patient Tracker checks passed: clinical delta direction, all specialties, missing dates, and PDF provenance.');
+console.log('Patient Tracker checks passed: clinical deltas, metrics, normative panels, and no CPG Alerts across all specialties, including stale evidence payloads.');

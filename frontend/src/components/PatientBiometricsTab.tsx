@@ -142,7 +142,7 @@ function BrainMap() {
 function NeuroPrognosis() {
   return (
     <section aria-labelledby="neuro-prognosis-title" className="min-w-0 overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
-      <h2 id="neuro-prognosis-title" className="border-b border-slate-200 px-5 py-4 text-lg font-semibold text-slate-800">Neuro-Anatomical Localization &amp; Multidisciplinary Prognosis</h2>
+      <h2 id="neuro-prognosis-title" className="border-b border-slate-200 px-5 py-4 text-lg font-semibold text-slate-800">Anatomical Localization of Injury &amp; Prognosis</h2>
       <div className="grid gap-6 p-5 lg:grid-cols-2 lg:gap-8">
         <BrainMap />
         <div className="flex flex-col justify-center gap-5">

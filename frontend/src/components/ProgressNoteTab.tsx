@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
-  AlertCircle, AlertTriangle, Info, BrainCircuit, Stethoscope,
-  PersonStanding, Hand, MessageSquare, ChevronDown, CheckCircle2, Ban, ArrowUpRight,
+  AlertCircle, AlertTriangle, Info, Stethoscope,
+  PersonStanding, Hand, MessageSquare, ChevronDown,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import {
-  encounters, trackerMetrics, metricValue, metricDelta, careTeam, specialtyPlans, comparisons,
+  encounters, trackerMetrics, metricValue, metricDelta, careTeam, comparisons,
   normativePanelDescription, safetyFlags,
   type Specialty, type Tone, type TrackerMetric,
 } from '../data/patientTracker';
@@ -156,45 +156,6 @@ function FeedingGoal() {
   );
 }
 
-export type BridgeSource = {
-  document_id: string; filename: string; page_number: number; text: string; star_rating: number;
-};
-type BridgeEvidence = { sources?: Partial<Record<Specialty, BridgeSource[]>>; error?: string };
-
-function CPGPanel({ specialty, evidence, onOpen }: { specialty: Specialty; evidence: BridgeEvidence; onOpen?: () => void }) {
-  const plan = specialtyPlans[specialty];
-  const sources = evidence.sources?.[specialty] ?? [];
-  return (
-    <Card className="col-span-full">
-      <CardHeader><span className="flex items-center gap-2 text-[#145b6e]"><BrainCircuit className="h-4 w-4" aria-hidden="true" />ARIA Clinical Practice Guideline Alerts</span></CardHeader>
-      <CardContent>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-          <h3 className="text-sm font-semibold text-slate-700">{plan.title}</h3>
-          <span title="Recommendation grades and page labels supplied in the case reference; not verified against the retrieved PDFs." className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500">Case reference</span>
-        </div>
-        {sources.length > 0 && <div className="mb-4">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Matched Evidence Bridge PDF Passages</h3>
-            {onOpen && <button type="button" onClick={onOpen} className="inline-flex items-center gap-1 text-xs font-medium text-[#145b6e] underline">Open Evidence Bridge<ArrowUpRight className="h-3 w-3" aria-hidden="true" /></button>}
-          </div>
-          <div className="space-y-2">{sources.map(source => <details key={`${source.document_id}-${source.page_number}`} className="rounded-md border border-slate-200 bg-slate-50 p-3"><summary className="cursor-pointer break-words text-xs font-semibold text-[#145b6e]">{source.filename} · Page {source.page_number} · {'★'.repeat(source.star_rating)}{'☆'.repeat(5 - source.star_rating)} {source.star_rating}/5</summary><blockquote className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-slate-600">{source.text}</blockquote></details>)}</div>
-        </div>}
-        {evidence.error && <p className="mb-3 text-xs text-amber-800">{evidence.error}</p>}
-        <div className="grid gap-5 md:grid-cols-2">
-          {[{ title: 'Recommended Active Interventions', items: plan.recommended, Icon: CheckCircle2, color: 'text-emerald-700' }, { title: 'Discouraged / Low-Value Interventions', items: plan.discouraged, Icon: Ban, color: 'text-amber-800' }].map(group => (
-            <div key={group.title}>
-              <h3 className={cn('mb-3 flex items-center gap-2 text-sm font-semibold', group.color)}><group.Icon className="h-4 w-4 shrink-0" aria-hidden="true" />{group.title}</h3>
-              <ul className="list-disc space-y-2 pl-4 text-xs leading-relaxed text-slate-600">
-                {group.items.map(item => <li key={item.text}>{item.text} <span className="font-medium text-slate-700" title="Case-reference citation label; verify against the original guideline.">[({item.citation})]</span></li>)}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function NormativePanel({ specialty }: { specialty: Specialty }) {
   return (
     <Card className="col-span-full">
@@ -212,8 +173,8 @@ function NormativePanel({ specialty }: { specialty: Specialty }) {
   );
 }
 
-type StreamlitArgs = { role?: string; trackerEvidence?: BridgeEvidence };
-export default function App({ args = {}, onOpenEvidenceBridge }: { args?: StreamlitArgs; onOpenEvidenceBridge?: () => void }) {
+type StreamlitArgs = { role?: string; trackerEvidence?: unknown };
+export default function App({ args = {} }: { args?: StreamlitArgs }) {
   const initialViews: Record<string, Specialty> = { PT: 'pt', MD: 'physician', Physician: 'physician', OT: 'ot', SLP: 'slp' };
   const [activeView, setActiveView] = useState<Specialty>(initialViews[args.role ?? ''] ?? 'physician');
   const ActiveIcon = specialties.find(s => s.id === activeView)!.icon;
@@ -231,7 +192,6 @@ export default function App({ args = {}, onOpenEvidenceBridge }: { args?: Stream
           {activeView === 'physician' && <MedicationPanel />}
           <MetricPanel specialty={activeView} />
           {activeView === 'ot' && <FeedingGoal />}
-          <CPGPanel specialty={activeView} evidence={args.trackerEvidence ?? {}} onOpen={onOpenEvidenceBridge} />
           <NormativePanel specialty={activeView} />
         </section>
       </main>

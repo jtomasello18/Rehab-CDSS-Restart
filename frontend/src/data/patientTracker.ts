@@ -118,61 +118,6 @@ export const safetyFlags: Record<Specialty, { title: string; text: string; tone:
   ],
 };
 
-type GuidelineItem = { text: string; citation: string };
-// Citation labels are supplied by the case template. They are not verified
-// against the separately retrieved PDFs; only those PDFs have physical pages.
-export const specialtyPlans: Record<Specialty, { title: string; recommended: GuidelineItem[]; discouraged: GuidelineItem[] }> = {
-  pt: {
-    title: 'APTA Clinical Practice Guideline to Improve Locomotor Function Following Chronic Stroke, 2020',
-    recommended: [
-      { text: 'Moderate-to-High Intensity Walking Training (70–85% HRmax)', citation: 'Strong Recommendation, p. 11' },
-      { text: 'Task-Specific Overground Stepping Practice to Target Gait Speed', citation: 'Strong Recommendation, p. 12' },
-      { text: 'Ankle-Foot Orthosis (AFO) or FES to Address Swing-Phase Foot Drop', citation: 'Moderate Recommendation, p. 19' },
-    ],
-    discouraged: [
-      { text: 'Static or Seated Balance Training Without Dynamic Walking', citation: 'Against Use to Improve Gait Speed, p. 18' },
-      { text: 'Body Weight-Supported Treadmill Prioritizing Kinematics Over Intensity', citation: 'Downgraded/Limited, p. 16' },
-      { text: 'Non-Weight-Bearing Lower-Extremity Strengthening Alone for Gait', citation: 'Against Use, p. 17' },
-    ],
-  },
-  physician: {
-    title: 'AHA/ASA Guidelines for Adult Stroke Rehabilitation and Recovery, 2016 / 2021',
-    recommended: [
-      { text: 'Targeted Botulinum Toxin Type A for Focal Post-Stroke Limb Spasticity', citation: 'Class I, Level A Recommendation, p. e114' },
-      { text: 'Gradual Reassessment/Titration of Oral Antispasmodics When Sedation/Falls Occur', citation: 'Class I, Level B, p. e115' },
-      { text: 'Multidisciplinary Fall-Prevention & Orthotic (AFO) Prescription Review', citation: 'Class I, Level B, p. e121' },
-    ],
-    discouraged: [
-      { text: 'Escalating Oral CNS Antispasmodics (Baclofen/Tizanidine) With Active Fall Risk', citation: 'Downgraded - Sedation/Weakness Risk, p. e115' },
-      { text: 'Abrupt Discontinuation of Oral Baclofen Without Gradual Taper', citation: 'Against Use - Withdrawal Risk' },
-    ],
-  },
-  ot: {
-    title: 'AHA/ASA & AOTA Practice Guidelines for Adults With Stroke',
-    recommended: [
-      { text: 'Repetitive Task-Specific Practice for Right UE Functional Recovery (Self-Feeding)', citation: 'Strong Recommendation, p. e115' },
-      { text: 'Proper GH Joint Positioning & Supportive Sling (GivMohr) for Subluxation', citation: 'Strong Recommendation, p. e124' },
-      { text: 'Mental Practice / Motor Imagery Integrated With Physical UE Practice', citation: 'Moderate/Strong Recommendation, p. e118' },
-    ],
-    discouraged: [
-      { text: 'Overhead Reciprocal Pulleys With Hemiplegic Shoulder Subluxation', citation: 'Against Use - Impingement Risk, p. e124' },
-      { text: 'Passive Range of Motion Alone Without Active Motor Re-Education', citation: 'Limited/Downgraded, p. e116' },
-    ],
-  },
-  slp: {
-    title: 'ASHA / RCSLT Clinical Guidelines for Post-Stroke Aphasia, 2023',
-    recommended: [
-      { text: 'Individualized Functional Aphasia Therapy With Phonemic Cueing Hierarchies', citation: 'Strong Recommendation, p. 84' },
-      { text: 'Structured Pacing & Front-Loaded Discourse Within 20-Minute Endurance Window', citation: 'Recommended, p. 86' },
-      { text: 'Supported Conversation for Adults With Aphasia (SCA) Caregiver Training', citation: 'Strong Recommendation, p. 88' },
-    ],
-    discouraged: [
-      { text: 'Non-Speech Oral Motor Exercises (NSOMEs) for Expressive Aphasia', citation: 'Against Use, p. 91' },
-      { text: 'Unstructured Conversational Stimulation Without Targeted Cueing', citation: 'Downgraded, p. 85' },
-    ],
-  },
-};
-
 export type NormativeComparison = {
   title: string;
   initial: string;

@@ -23,9 +23,7 @@ function App({ args = {} }) {
 
   switch (view) {
     case 'progress_note':
-      return <ProgressNoteTab args={args} onOpenEvidenceBridge={() => Streamlit.setComponentValue({
-        action: 'open_evidence_bridge', requestId: `${Date.now()}-${Math.random()}`,
-      })} />
+      return <ProgressNoteTab args={args} />
     case 'patient_biometrics':
       return <PatientBiometricsTab />
     case 'literature_evidence':
