@@ -11,8 +11,8 @@ from professor_aria.branding import INTERACTION_STYLE, PAGE_ICON
 import aria_dashboard
 
 # Streamlit can retain imported modules across script/deployment reruns. Refresh
-# the older navigation before importing its renderer so the tab reads ARIA Scribe.
-if aria_dashboard.V_SCRIBE != "ARIA Scribe":
+# older navigation before importing its renderer so newly deployed tabs appear.
+if aria_dashboard.V_SCRIBE != "ARIA Scribe" or "ARIA Education" not in aria_dashboard.VIEWS:
     import importlib
     importlib.reload(aria_dashboard)
 

@@ -82,7 +82,7 @@ class ClinicalGatewayTests(unittest.TestCase):
             app.run()
         self.assertFalse(app.exception)
         tabs = app.radio(key='view')
-        self.assertEqual(tabs.options[-1], 'ARIA Scribe')
+        self.assertEqual(tabs.options[-2:], ['ARIA Scribe', 'ARIA Education'])
         self.assertNotIn('ARIA Chart', tabs.options)
         self.assertEqual(tabs.value, 'ARIA Scribe')
 

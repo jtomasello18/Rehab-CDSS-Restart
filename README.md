@@ -103,3 +103,30 @@ Run the regression suite without making Claude or PubMed requests:
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
+### ARIA Education
+
+The final workspace tab offers four synthetic patient modules (Ed Vance, Elena
+Rostova, Marcus Thorne, and Sarah Jenkins) with 13 case questions. The shared
+curriculum and source links live in `frontend/src/data/education.json`; these are
+authored teaching vignettes, not live-generated questions or a real patient roster.
+Each answer reveals a rationale and source-specific design appraisal. CMS billing
+policy is labeled separately from research evidence.
+
+First answers drive accuracy, patient mastery, and domain scores. Confidence is
+recorded separately and does not affect scoring. The demo grants 0.05 simulated
+learning hours per answered question, topped up to 0.25 on completion of a case
+(1.00 hour across this curriculum). The displayed 24-hour target is illustrative;
+the app does not award accredited CEU/CME or certify Florida compliance. Resetting
+a case removes only that case's answers and associated progress.
+
+Answers and the selected patient persist in the authenticated Streamlit session
+across tab changes and reruns. Sign-out clears them; there is no account-level
+learning record or browser-local storage. Education works without an Anthropic
+key. The Python bridge validates question IDs, choices, and event IDs before
+accepting state; aggregate scores are always calculated from answers.
+
+Run `npm run check:education` in `frontend/` for a strict TypeScript check of the
+Education component and scoring utilities, plus curriculum, scoring, restore,
+reset, and rendering checks. Run `npm run build` afterward and commit
+`frontend/dist` with source changes for Streamlit Cloud.
+

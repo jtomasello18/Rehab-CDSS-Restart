@@ -6,6 +6,7 @@ import ScribeTab from './components/ScribeTab'
 import ProgressNoteTab from './components/ProgressNoteTab'
 import PatientBiometricsTab from './components/PatientBiometricsTab'
 import LiteratureEvidenceTab from './components/LiteratureEvidenceTab'
+import EducationTab from './components/EducationTab'
 import './index.css'
 
 function App({ args = {} }) {
@@ -30,6 +31,8 @@ function App({ args = {} }) {
       return <LiteratureEvidenceTab />
     case 'scribe':
       return <ScribeTab args={args} />
+    case 'education':
+      return <EducationTab args={args} />
     default:
       return <ProgressNoteTab />
   }

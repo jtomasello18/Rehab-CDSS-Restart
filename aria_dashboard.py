@@ -82,9 +82,10 @@ V_INTAKE = "EHR Sync & Intake"
 V_PROGRESS_NOTE = "Patient Tracker"
 V_MEASURES_TRENDS = "Measures & Trends"
 V_SCRIBE = "ARIA Scribe"
+V_EDUCATION = "ARIA Education"
 V_EVIDENCE_BRIDGE = "Evidence Bridge"
 V_EVIDENCE = "Evidence & Guidance"
-VIEWS = [V_INTAKE, V_EVIDENCE_BRIDGE, V_EVIDENCE, V_PROGRESS_NOTE, V_MEASURES_TRENDS, V_SCRIBE]
+VIEWS = [V_INTAKE, V_EVIDENCE_BRIDGE, V_EVIDENCE, V_PROGRESS_NOTE, V_MEASURES_TRENDS, V_SCRIBE, V_EDUCATION]
 
 ECW_CLINICAL_NOTE = ED_VANCE_NOTE
 _LEGACY_NOTE_HASH = "39c47ee876da733e543d3a5182a3e86140c58a4724b258c2f790cf2124fcc996"
@@ -427,6 +428,7 @@ def render_sidebar():
                     "- **Evidence Bridge**: upload PDFs, explore the knowledge base, and ask source-grounded questions.\n"
                     "- **Evidence & Guidance**: I search PubMed and Evidence Bridge, then talk it through; reply with follow-ups.\n"
                     "- **Patient Tracker**, **Measures & Trends**, and **ARIA Scribe** open the integrated clinical views.\n"
+                    "- **ARIA Education**: practice case quizzes and track simulated learning progress.\n"
                     "- Practice and synthetic data only for this pilot."
                 )
 
@@ -824,6 +826,10 @@ def render_professor_dashboard(figma_component, role="Viewer"):
         st.session_state.view = V_EVIDENCE_BRIDGE
 
     view = st.radio("Workspace", VIEWS, horizontal=True, key="view", label_visibility="collapsed", width="stretch")
+    if view == V_EDUCATION:
+        from professor_aria.education import render_education
+        render_education(figma_component, role)
+        return
     if view == V_EVIDENCE_BRIDGE:
         from evidence_bridge import render_evidence_bridge
         render_evidence_bridge()
@@ -846,6 +852,7 @@ def render_professor_dashboard(figma_component, role="Viewer"):
             "3. **Evidence Bridge** — upload PDFs, explore the knowledge base, and ask source-grounded questions.\n"
             "4. **Evidence & Guidance** — I search PubMed and Evidence Bridge and talk it through as a mentor. Ask follow-up questions anytime.\n"
             "5. **Patient Tracker**, **Measures & Trends**, and **ARIA Scribe** open the integrated clinical views.\n"
+            "6. **ARIA Education** — practice case-based reasoning with quizzes and simulated learning progress.\n"
         )
         st.info("This pilot uses practice and synthetic data only. Please don't enter real patient information.")
         st.write("**Open the synced Ed Vance chart on the left to begin.**")
