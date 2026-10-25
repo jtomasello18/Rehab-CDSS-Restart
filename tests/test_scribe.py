@@ -107,6 +107,21 @@ class ScribeTests(unittest.TestCase):
                 self.assertTrue(scribe.refine_soap(note, instruction, template)['error'])
         factory.assert_not_called()
 
+    def test_cpt_refinement_sends_format_and_source_fidelity_rules(self):
+        revised = dict(SOAP, objective='- 97116: Documented gait training.',
+                       plan='- 97116: Progress the documented gait goal.')
+        context, client = mocked_client(json.dumps(revised))
+        with patch.object(scribe, '_client', return_value=context):
+            result = scribe.refine_soap(SOAP, 'Align with CPT 97116 & 97112')
+        self.assertEqual(result['soap'], revised)
+        call = client.messages.create.call_args.kwargs
+        self.assertEqual(json.loads(call['messages'][0]['content'])['soap'], SOAP)
+        self.assertIn(scribe.CPT_REFINEMENT_PROMPT, call['system'])
+        self.assertIn('NEVER output meta-headers', call['system'])
+        self.assertIn('Do NOT repeat general frequency/duration', call['system'])
+        self.assertIn('omit the time', call['system'])
+        self.assertIn('Do not introduce these example values', call['system'])
+
     def test_cloud_secret_key_is_resolved_only_on_the_server(self):
         with patch.dict(os.environ, {'ANTHROPIC_API_KEY': ''}), \
              patch('streamlit.secrets', {'ANTHROPIC_API_KEY': 'cloud-test-key'}), \

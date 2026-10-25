@@ -90,9 +90,9 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     if (result.error || !isSoapNote(args.soap)) {
       if (localDraftRef.current?.requestId === result.requestId) {
         applyLocalDraft(result.requestId, pendingKindRef.current === 'refinement'
-          ? 'Claude could not apply the refinement. The existing note has been retained.'
+          ? 'Claude could not apply the refinement. The local draft is available for review.'
           : 'Local shorthand draft retained. Claude was unavailable; review every section.');
-        if (pendingKindRef.current === 'refinement') setRefinementStatus('Refinement unavailable — existing note retained. Retry or use an action chip.');
+        if (pendingKindRef.current === 'refinement') setRefinementStatus('Claude unavailable — local draft available for review. Retry or edit the note.');
       } else {
         setGenerationError(result.error || 'Claude returned an incomplete SOAP draft. Please retry.');
       }
@@ -204,8 +204,42 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     }
   };
 
+  const requestRefinement = (request: string, source: SoapNote = soap, fallback: SoapNote = source) => {
+    const id = requestId();
+    clearGenerationTimer();
+    if (pendingRequestRef.current) retiredRequestsRef.current.add(pendingRequestRef.current);
+    pendingRequestRef.current = id;
+    pendingKindRef.current = 'refinement';
+    localDraftRef.current = { requestId: id, soap: fallback };
+    fallbackAppliedRef.current = null;
+    draftEditedRef.current = false;
+    setIsGenerating(true);
+    setSigned(false);
+    setGenerationError(null);
+    setCondensedSnapshot(null);
+    setRefinementStatus('Applying your refinement with Claude…');
+    generationTimerRef.current = setTimeout(() => {
+      if (pendingRequestRef.current === id) {
+        applyLocalDraft(id, 'The local draft remains editable while Claude processes the refinement.');
+        setRefinementStatus('Awaiting Claude — local draft available for review. You can keep editing.');
+      }
+    }, 2000);
+    try {
+      Streamlit.setComponentValue({ type: 'refine_soap', requestId: id, soap: source, instruction: request, discipline, transcript: rawInput });
+    } catch {
+      applyLocalDraft(id, 'The server connection is unavailable. The local draft is available for review.');
+      setRefinementStatus('Claude unavailable — local draft available for review.');
+      pendingRequestRef.current = null;
+    }
+  };
+
   const applySmartEdit = (kind: 'audit' | 'cpt' | 'concise') => {
     if (!canRefine) return;
+    if (kind === 'cpt') {
+      const source = condensedSnapshot ?? soap;
+      requestRefinement('Align with CPT 97116 & 97112', source, alignCpt(source, discipline));
+      return;
+    }
     draftEditedRef.current = true;
     setDraftSource('manual');
     if (kind === 'concise') {
@@ -214,9 +248,9 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
       setRefinementStatus(condensedSnapshot ? 'Full narrative restored.' : 'Condensed summary applied to all four SOAP sections.');
     } else {
       const base = condensedSnapshot ?? soap;
-      setSoap(kind === 'audit' ? addSkilledJustification(base, discipline) : alignCpt(base, discipline));
+      setSoap(addSkilledJustification(base, discipline));
       setCondensedSnapshot(null);
-      setRefinementStatus(kind === 'audit' ? 'Clinical skilled justification updated in Assessment.' : 'Clinical CPT alignment updated in Objective and Plan.');
+      setRefinementStatus('Clinical skilled justification updated in Assessment.');
     }
     setSigned(false);
   };
@@ -233,30 +267,7 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
       setRefinementStatus(JSON.stringify(transformed) === JSON.stringify(soap) ? 'The note already matches this refinement.' : 'Refinement applied — review the updated SOAP sections.');
       setSigned(false);
     } else {
-      const id = requestId();
-      clearGenerationTimer();
-      if (pendingRequestRef.current) retiredRequestsRef.current.add(pendingRequestRef.current);
-      pendingRequestRef.current = id;
-      pendingKindRef.current = 'refinement';
-      localDraftRef.current = { requestId: id, soap };
-      fallbackAppliedRef.current = null;
-      draftEditedRef.current = false;
-      setIsGenerating(true);
-      setSigned(false);
-      setRefinementStatus('Applying your refinement with Claude…');
-      generationTimerRef.current = setTimeout(() => {
-        if (pendingRequestRef.current === id) {
-          applyLocalDraft(id, 'The existing note remains editable while Claude processes the refinement.');
-          setRefinementStatus('Awaiting Claude — existing note retained. You can keep editing.');
-        }
-      }, 2000);
-      try {
-        Streamlit.setComponentValue({ type: 'refine_soap', requestId: id, soap, instruction: request, discipline, transcript: rawInput });
-      } catch {
-        applyLocalDraft(id, 'The server connection is unavailable. The existing note has been retained.');
-        setRefinementStatus('Refinement unavailable — existing note retained.');
-        pendingRequestRef.current = null;
-      }
+      requestRefinement(request);
     }
     setSmartEditPrompt('');
   };

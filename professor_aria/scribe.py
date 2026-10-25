@@ -47,6 +47,34 @@ Output ONLY a valid JSON object with exactly four keys: 'subjective', 'objective
 No Markdown fences, surrounding commentary, additional keys, or nested objects.
 """
 
+CPT_REFINEMENT_PROMPT = """
+When the clinician requests alignment with CPT 97116 and/or 97112:
+- NEVER output meta-headers such as '[CPT BILLING CODE ALIGNMENT]:', 'Billing
+  Alignment', or instructions/checklists. Integrate the edit into the SOAP text.
+- In Objective, format documented performed interventions as clean hyphen bullets:
+  '- 97116 (15 min): Overground stepping targeting terminal stance ...'
+  '- 97112 (10 min): Dynamic weight-shifting with documented clinician cueing ...'
+  These are formatting examples, NOT encounter facts. Use only minutes explicitly
+  attributed to that intervention in the supplied note. If its minutes are absent
+  or ambiguous, omit the time, e.g. '- 97116: ...'. Never allocate total session
+  time across codes, duplicate minutes, infer billable units, or turn a test result
+  or observed walking ability into a performed skilled intervention.
+- In Plan, use a distinct future treatment focus or documented functional goal for
+  each supported code. Do NOT repeat general frequency/duration (e.g. 2x/wk for
+  6 wks) under each code; retain the schedule once as a separate plan statement.
+  If these exact targets already appear in the note, examples of the format are:
+  '- 97116: Progress gait velocity to >0.40 m/s for the documented mobility goal.'
+  '- 97112: Improve BBS to >45/56 for the documented balance goal.'
+  Do not introduce these example values, goals, or population-wide threshold
+  claims unless supported by the source. If no numerical target is documented,
+  retain the documented qualitative goal or future intervention without adding one.
+- Keep performed services in Objective and future interventions in Plan. Include
+  a code only when supported by the actual activity and specialty; do not force
+  both codes into every note. Preserve unrelated findings and Subjective/Assessment.
+- Replace old alignment blocks rather than appending duplicate material. Return
+  the same four JSON string fields, with no extra headers inside their values.
+"""
+
 
 def validate_soap(value: object) -> dict:
     if not isinstance(value, dict) or set(value) != set(SOAP_FIELDS):
@@ -123,7 +151,7 @@ rules, coding checklists or instructions to the clinician. A skilled-necessity
 paragraph must be specific to supported functional limitations. Do not claim
 caregiver inability or performed cueing that the source does not document.
 Return all four updated SOAP strings using the same JSON schema.
-""")
+""" + CPT_REFINEMENT_PROMPT)
 
 
 def _request_soap(payload: dict, system: str) -> dict:

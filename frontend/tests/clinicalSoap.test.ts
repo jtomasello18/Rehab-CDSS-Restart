@@ -55,8 +55,7 @@ for (const template of fixtures) {
   assert.doesNotMatch(JSON.stringify(audit), /The treating clinician must|do not infer|Confirm the plan|Relate the documented plan|record skilled decisions/i);
   assert.deepEqual(addSkilledJustification(audit, template.label), audit, 'Repeated click updates the section, without duplicates');
   const cpt = alignCpt(audit, template.label);
-  assert.match(cpt.objective, /\[CPT BILLING CODE ALIGNMENT\]/);
-  assert.match(cpt.plan, /\[CPT BILLING CODE ALIGNMENT\]/);
+  assert.doesNotMatch(JSON.stringify(cpt), /\[CPT BILLING CODE ALIGNMENT\]/);
   assert.deepEqual(alignCpt(cpt, template.label), cpt);
   assert.doesNotMatch(JSON.stringify(cpt), /30 MIN SKILLED SESSION|15 min, 1 Unit|50 ft x 2|Codes .*Verified/);
   assert.match(cpt.assessment, /MEDICARE PART B SKILLED NECESSITY/, 'CPT update retains the other action');
@@ -70,8 +69,8 @@ for (const template of fixtures) {
   }
 }
 const pt = soap;
-assert.match(alignCpt(pt, 'PT Skilled SOAP').objective, /Neuromuscular re-education was not documented as a performed intervention/);
-assert.match(alignCpt(slp, 'SLP Cognitive-Linguistic SOAP').objective, /not recorded as services provided in this SLP\/physician encounter/);
+assert.doesNotMatch(alignCpt(pt, 'PT Skilled SOAP').objective, /97112/);
+assert.deepEqual(alignCpt(slp, 'SLP Cognitive-Linguistic SOAP'), slp);
 assert.match(applyLocalInstruction(pt, 'Replace "mailbox" with "front door"', 'PT Skilled SOAP')!.subjective, /front door/);
 assert.doesNotMatch(applyLocalInstruction(pt, 'Replace "mailbox" with "front door"', 'PT Skilled SOAP')!.subjective, /mailbox/);
 assert.equal(applyLocalInstruction(pt, 'Emphasize the medication correlation for the attending', 'PT Skilled SOAP'), null, 'Open-ended edits require Claude, not literal request insertion');
@@ -104,11 +103,33 @@ assert.match(mixed.plan, /Continue occupational therapy 1 visits per week/);
 
 const treatment = expandClinicalShorthand('S: Trouble walking O: Walked 80ft w/ CGA; dynamic weight-shifts with tactile cueing for postural control A: Impaired balance P: Continue overground gait training and balance training twice weekly');
 const codedTreatment = alignCpt(treatment, 'PT Skilled SOAP');
-assert.match(codedTreatment.objective, /CPT 97116 \(Gait Training\): Gait training involved/);
-assert.match(codedTreatment.objective, /CPT 97112 \(Neuromuscular Re-education\): Neuromuscular treatment/);
-assert.match(codedTreatment.plan, /Planned locomotor treatment/);
-assert.match(codedTreatment.plan, /Planned motor-control treatment/);
+assert.match(codedTreatment.objective, /- 97112:.*weight-shifts/);
+assert.doesNotMatch(codedTreatment.objective, /97116/, 'Walking observation alone is not a skilled intervention');
+assert.equal((codedTreatment.plan.match(/twice weekly/g) ?? []).length, 1);
 assert.doesNotMatch(JSON.stringify(codedTreatment), /Verify|Use only|before assigning|Documented activity for clinician coding review|Do not infer|Time and units:/);
 const unrelated = expandClinicalShorthand('S: No pain O: ROM WNL; independent mobility A: No functional deficits P: Discharge');
 assert.doesNotMatch(addSkilledJustification(unrelated, 'PT Skilled SOAP').assessment, /services are medically necessary/);
 console.log('Organic input checks passed: mixed free-text, labeled notes, all requested abbreviations, source fidelity and clinical refinement prose.');
+
+const timed = { subjective: 'Walking is difficult.', assessment: 'Gait and balance deficits.',
+  objective: 'Gait training for 15 min: overground stepping with stance cueing.\nBalance training for 10 minutes: dynamic weight-shifts.\nBBS 38/56.',
+  plan: 'Progress gait velocity to >0.40 m/s, 2x/wk for 6 wks.\nImprove BBS to >45/56, 2x/wk for 6 wks.\nReview orthotic fit.' };
+const aligned = alignCpt(timed, 'PT Skilled SOAP');
+assert.match(aligned.objective, /- 97116 \(15 min\): Gait training overground stepping/);
+assert.match(aligned.objective, /- 97112 \(10 min\): Balance training dynamic weight-shifts/);
+assert.match(aligned.objective, /BBS 38\/56/);
+assert.match(aligned.plan, /- 97116: Progress gait velocity to >0\.40 m\/s/);
+assert.match(aligned.plan, /- 97112: Improve BBS to >45\/56/);
+assert.equal((aligned.plan.match(/2x\/wk for 6 wks/g) ?? []).length, 1);
+assert.match(aligned.plan, /Review orthotic fit/);
+assert.deepEqual(alignCpt(aligned, 'PT Skilled SOAP'), aligned, 'Coded bullets remain repeatable without hidden markers');
+const untimed = alignCpt({ ...timed, objective: 'Gait training with verbal cueing.\nBalance training with guarding.\nTotal session: 30 min.', plan: 'Progress gait training.\nContinue balance training.' }, 'PT Skilled SOAP');
+assert.match(untimed.objective, /- 97116: Gait training/);
+assert.doesNotMatch(untimed.objective, /971(?:16|12) \(/, 'Total time must not be allocated to individual codes');
+assert.doesNotMatch(untimed.plan, /0\.40|45\/56|2x/, 'No default goals or schedule');
+const combinedTime = alignCpt({ ...timed, objective: 'Gait training and home exercises, total session 30 min.\nBalance training for 10–15 min.' }, 'PT Skilled SOAP');
+assert.doesNotMatch(combinedTime.objective, /971(?:16|12) \(/, 'Combined or range durations must not become a single-code exact time');
+assert.match(combinedTime.objective, /10–15 min/);
+const denied = alignCpt({ ...timed, objective: 'Gait training not performed.\nBalance training not performed.' }, 'PT Skilled SOAP');
+assert.doesNotMatch(denied.objective, /97116|97112/);
+console.log('CPT checks passed: no meta-headers, attributed minutes, distinct goals, single schedule and no fabricated services.');

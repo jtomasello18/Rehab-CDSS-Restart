@@ -46,28 +46,43 @@ export function addSkilledJustification(note: SoapNote, template: string): SoapN
   };
 }
 
-/** Coding descriptions are distinct from a claim of performed/billable services. */
+/** Conservative source-only formatting while the server refines the same draft. */
 export function alignCpt(note: SoapNote, template: string): SoapNote {
   const base = baseNote(note);
-  const gaitPattern = /(?:ambulated|walked|gait training|overground gait|locomotor training)/i;
+  const gaitPattern = /(?:gait training|overground (?:gait|stepping|walking)|locomotor training)/i;
   const neuroPattern = /(?:neuromuscular re-education|weight.shifts?|postural (?:control|training)|balance training|proprioceptive facilitation|motor.control training|synergy re-education)/i;
-  const gait = documented(base.objective).filter(line => positive(line, gaitPattern)).join(' ');
-  const neuro = documented(base.objective).filter(line => positive(line, neuroPattern)).join(' ');
-  const plannedGait = documented(base.plan).filter(line => positive(line, gaitPattern)).join(' ');
-  const plannedNeuro = documented(base.plan).filter(line => positive(line, neuroPattern)).join(' ');
-  const inScope = template.startsWith('PT') || template.startsWith('OT');
-  const content = inScope ? [
-    `• CPT 97116 (Gait Training): ${gait ? `Gait training involved the following mobility performance: ${gait}` : 'Gait training was not documented as a performed intervention during this encounter.'}`,
-    `• CPT 97112 (Neuromuscular Re-education): ${neuro ? `Neuromuscular treatment addressed motor control through the following activities: ${neuro}` : 'Neuromuscular re-education was not documented as a performed intervention during this encounter.'}`,
-  ].join('\n') : 'Gait training (CPT 97116) and neuromuscular re-education (CPT 97112) were not recorded as services provided in this SLP/physician encounter.';
-  const plan = inScope ? [
-    `• CPT 97116 (Gait Training): ${plannedGait ? `Planned locomotor treatment: ${plannedGait}` : 'Additional gait training is not specified in the recorded plan.'}`,
-    `• CPT 97112 (Neuromuscular Re-education): ${plannedNeuro ? `Planned motor-control treatment: ${plannedNeuro}` : 'Additional neuromuscular re-education is not specified in the recorded plan.'}`,
-  ].join('\n') : 'The recorded specialty plan does not include gait training (CPT 97116) or neuromuscular re-education (CPT 97112).';
+  if (!template.startsWith('PT') && !template.startsWith('OT')) return { ...note, objective: base.objective, plan: base.plan };
+  const clauses = (text: string) => lines(text).flatMap(line => line.split(/;\s*/)).filter(Boolean);
+  const coded = /^(?:CPT\s+)?971(?:16|12)(?:\s*\([^)]*\))?\s*:/i;
+  const bullet = (text: string) => `- ${text.trim()}`;
+  const objective = clauses(base.objective).map(line => {
+    if (coded.test(line)) return bullet(line.replace(/^CPT\s+/i, ''));
+    const gait = positive(line, gaitPattern), neuro = positive(line, neuroPattern);
+    // Ambiguous mixed activities and assessment-only measurements stay uncoded.
+    if (gait === neuro) return bullet(line);
+    const times = [...line.matchAll(/\b(\d+(?:\.\d+)?)\s*min(?:ute)?s?\b/gi)];
+    if (times.length > 1 || (times.length && /\b(?:total|session|combined|overall)\b|\d+\s*[-–]\s*\d+\s*min/i.test(line))) return bullet(line);
+    const time = times[0];
+    const description = time ? line.replace(/\b(?:for\s+)?\d+(?:\.\d+)?\s*min(?:ute)?s?\b\s*[:,–-]?\s*/i, '').trim() : line;
+    return bullet(`${gait ? '97116' : '97112'}${time ? ` (${time[1]} min)` : ''}: ${description}`);
+  });
+  const schedules = new Set<string>();
+  const frequency = /\b(?:\d+\s*(?:x\s*\/\s*w(?:k|eek)|(?:visits?|times?)\s+(?:per|a)\s+week)|(?:once|twice|three times)\s+(?:weekly|per week))(?:\s+for\s+\d+\s*(?:wks?|weeks?))?\b/gi;
+  const plan = clauses(base.plan).flatMap(line => {
+    // A shared schedule stays on its own line, never copied into both code bullets.
+    const focus = line.replace(frequency, schedule => { schedules.add(schedule.toLowerCase()); return ''; }).trim()
+      .replace(/\s+([.,;])/g, '$1').replace(/[,;]\s*([.!?]|$)/g, '$1');
+    if (!focus || /^(?:continue(?: therapy)?|therapy|frequency(?:\/duration)?\s*:)?[.\s]*$/i.test(focus)) return [];
+    if (coded.test(focus)) return [bullet(focus.replace(/^CPT\s+/i, ''))];
+    const gait = positive(focus, /(?:gait|ambulation|walking|locomotor)/i);
+    const neuro = positive(focus, /(?:balance|\bBBS\b|Berg|neuromuscular|postural|weight.shift|motor.control|proprioceptive)/i);
+    return [bullet(gait !== neuro ? `${gait ? '97116' : '97112'}: ${focus}` : focus)];
+  });
+  for (const schedule of schedules) plan.push(bullet(`Continue therapy ${schedule}.`));
   return {
     ...note,
-    objective: block(note.objective, CPT, content),
-    plan: block(note.plan, CPT, plan),
+    objective: objective.join('\n'),
+    plan: plan.join('\n'),
   };
 }
 
