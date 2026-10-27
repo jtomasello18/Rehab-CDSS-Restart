@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import PatientTracker from '../src/components/ProgressNoteTab';
-import { trackerMetrics, metricDelta, encounters, safetyFlags } from '../src/data/patientTracker';
+import { trackerMetrics, metricDelta, encounters, safetyFlags, comparisons } from '../src/data/patientTracker';
 
 // Regressions in outcome direction must not turn a slower TUG green or round
 // small gait changes away. Unknown encounters must not become interpolations.
@@ -34,6 +34,16 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
   assert.match(markup, /Vance, E\. IRF Discharge \(09\/29\)/);
   assert.match(markup, /Vance, E\. Outpatient Eval \(10\/13\)/);
   const normativePanel = markup.slice(markup.indexOf('Normative Performance Panel'));
+  const normativeCards = normativePanel.match(/<article\b[\s\S]*?<\/article>/g) ?? [];
+  assert.equal(normativeCards.length, 3);
+  for (const card of normativeCards) {
+    assert.equal((card.match(/data-normative-citation/g) ?? []).length, 1);
+    assert.ok(card.indexOf('</dl>') < card.indexOf('<footer'), 'Citations sit directly below the comparison rows');
+    assert.match(card, /Source: /);
+    assert.match(card, /text-xs text-slate-500 mt-2 leading-relaxed/);
+    assert.match(card, /href="https:\/\//);
+    assert.match(card, /rel="noopener noreferrer"/);
+  }
   assert.doesNotMatch(normativePanel, /Not supplied|Not recorded|Not re-measured|missing reference values and measurements/);
   assert.match(normativePanel, /Age\/Gender Matched Reference Values \(M, 65–70\)/);
   assert.doesNotMatch(normativePanel, /IRF Discharge Baseline \(09\/29\) vs\. Outpatient Evaluation \(10\/13\)/);
@@ -86,4 +96,14 @@ for (const flags of Object.values(safetyFlags)) {
   assert.ok(flags.every(flag => flag.text.split(/(?<=[.!?])\s+/).length <= 2));
 }
 
-console.log('Patient Tracker checks passed: clinical deltas, metrics, normative panels, and no CPG Alerts across all specialties, including stale evidence payloads.');
+assert.equal(Object.values(comparisons).flat().length, 12);
+for (const comparison of Object.values(comparisons).flat()) {
+  assert.ok(comparison.citations.length >= 2);
+  assert.ok(comparison.citationScope.length > 0);
+  assert.ok(comparison.citations.every(source => source.url.startsWith('https://')));
+}
+assert.match(comparisons.pt[0].citations[0].label, /Table 4, p\. e550/);
+assert.match(comparisons.pt[1].citations[1].label, /Table 7, p\. 192/);
+assert.match(comparisons.pt[2].citations[1].label, /8\.1 sec/);
+assert.match(comparisons.slp[2].citationScope, /do not define a standardized discourse-duration norm/);
+console.log('Patient Tracker checks passed: clinical values, 12 linked citation footers across all specialties, and no CPG Alerts, including stale evidence payloads.');

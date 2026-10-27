@@ -166,7 +166,17 @@ function NormativePanel({ specialty }: { specialty: Specialty }) {
           {comparisons[specialty].map(comparison => <article key={comparison.title} className="min-w-0"><h3 className="mb-3 text-sm font-semibold text-slate-800">{comparison.title}</h3><dl className="space-y-1 text-xs">{[
             [comparison.normLabel, comparison.norm], [comparison.avgLabel, comparison.avg],
             ['Vance, E. IRF Discharge (09/29)', comparison.initial], ['Vance, E. Outpatient Eval (10/13)', comparison.current],
-          ].map(([label, value], i) => <div key={label} className={cn('flex items-start justify-between gap-3 rounded-md border-b border-slate-100 px-2 py-2.5', i === 2 && 'bg-slate-50', i === 3 && 'border-[#145b6e]/10 bg-[#145b6e]/5 font-semibold text-[#145b6e]')}><dt className="max-w-[60%]">{label}</dt><dd className="break-words text-right font-medium">{value}</dd></div>)}</dl>{comparison.note && <p className="mt-2 text-xs leading-relaxed text-slate-500">{comparison.note}</p>}{comparison.reference && <a className="mt-2 inline-block text-xs text-[#145b6e] underline" href={comparison.reference.url} target="_blank" rel="noopener noreferrer">{comparison.reference.label}</a>}</article>)}
+          ].map(([label, value], i) => <div key={label} className={cn('flex items-start justify-between gap-3 rounded-md border-b border-slate-100 px-2 py-2.5', i === 2 && 'bg-slate-50', i === 3 && 'border-[#145b6e]/10 bg-[#145b6e]/5 font-semibold text-[#145b6e]')}><dt className="max-w-[60%]">{label}</dt><dd className="break-words text-right font-medium">{value}</dd></div>)}</dl>
+            <footer data-normative-citation className="text-xs text-slate-500 mt-2 leading-relaxed">
+              <span className="font-medium">Source: </span>
+              {comparison.citations.map((citation, index) => <React.Fragment key={citation.url}>
+                {index > 0 && '; '}
+                <a className="underline decoration-slate-300 underline-offset-2 hover:text-[#145b6e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#145b6e]" href={citation.url} target="_blank" rel="noopener noreferrer">{citation.label}</a>
+              </React.Fragment>)}.
+              <span className="mt-1 block">{comparison.citationScope}</span>
+            </footer>
+            {comparison.note && <p className="mt-2 text-xs leading-relaxed text-slate-500">{comparison.note}</p>}
+          </article>)}
         </div>
       </CardContent>
     </Card>

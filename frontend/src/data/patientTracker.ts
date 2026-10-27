@@ -127,13 +127,19 @@ export type NormativeComparison = {
   normLabel: string;
   avgLabel: string;
   note?: string;
-  reference?: { label: string; url: string };
+  citations: { label: string; url: string }[];
+  citationScope: string;
 };
 
 // Case values and benchmark numbers supplied for this Ed Vance scenario.
 // Only the linked interpretation/target is verified by each reference; no
 // reference is represented as validating all the configured cohort averages.
 export const normativePanelDescription = 'Age/Gender Matched Reference Values (M, 65–70)';
+
+const strokeRehab2026 = 'https://doi.org/10.1161/STR.0000000000000536';
+const locomotor2020 = 'https://doi.org/10.1097/NPT.0000000000000303';
+const neuroCore2018 = 'https://doi.org/10.1097/NPT.0000000000000229';
+const steffen2002 = 'https://pubmed.ncbi.nlm.nih.gov/11856064/';
 
 export const comparisons: Record<Specialty, NormativeComparison[]> = {
   pt: [
@@ -143,6 +149,12 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       avgLabel: 'Stroke Cohort Avg (12 wk)', avg: '0.65 m/s (Community >0.80 m/s)',
       initial: '0.48 m/s (Limited Community)',
       current: '0.35 m/s (▼ -0.13 m/s · Household Only)',
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Table 4, p. e550: <0.4, 0.4–0.8, >0.8 m/s ambulation categories; Sec. 5.7, p. e573: walking-aid context)', url: strokeRehab2026 },
+        { label: 'APTA Locomotor CPG (Hornby et al., 2020, p. 56: training parameters)', url: locomotor2020 },
+        { label: 'Age/sex normative study: Steffen et al., 2002', url: steffen2002 },
+      ],
+      citationScope: 'Steffen reports decade-based age groups, not a specific M 65–70 group. The displayed healthy and cohort comparators are configured case benchmarks.',
     },
     {
       title: 'Berg Balance Scale (Static & Dynamic Balance)',
@@ -150,12 +162,24 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       avgLabel: 'Stroke Cohort Avg (12 wk)', avg: '45 / 56 (Fall Risk Cutoff <45)',
       initial: '42 / 56 (Moderate Fall Risk)',
       current: '38 / 56 (▼ -4 pts · High Fall Risk)',
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Sec. 4.2, Table 4, p. e550: balance assessment)', url: strokeRehab2026 },
+        { label: 'APTA Neuro Core Set CPG (Moore et al., 2018, Table 7, p. 192: BBS measurement evidence)', url: neuroCore2018 },
+        { label: 'Age/sex normative study: Steffen et al., 2002', url: steffen2002 },
+      ],
+      citationScope: 'These citations do not establish 54/56 as an exact M 65–70 mean or <45 as a universal stroke fall cutoff. Displayed comparator values are case benchmarks.',
     },
     {
       title: 'Timed Up & Go (TUG — Functional Mobility)',
       normLabel: 'Healthy Norm (M, 65–70)', norm: '8.5 sec',
       avgLabel: 'Stroke Cohort Avg (12 wk)', avg: '14.5 sec (Fall Cutoff >14.0s)',
       initial: '16.2 sec', current: '21.4 sec (▲ +5.2s slower · Regressing)',
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Sec. 4.2, pp. e549–e550, Table 4: TUG assessment)', url: strokeRehab2026 },
+        { label: 'TUG normative meta-analysis: Bohannon, 2006 (ages 60–69: mean 8.1 sec)', url: 'https://pubmed.ncbi.nlm.nih.gov/16914068/' },
+        { label: 'Age/sex normative study: Steffen et al., 2002', url: steffen2002 },
+      ],
+      citationScope: 'The displayed 8.5-sec and cohort comparators are case benchmarks. Moore 2018 does not establish a >14-sec stroke fall cutoff.',
     },
   ],
   physician: [
@@ -164,7 +188,11 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       normLabel: 'Healthy / AHA Target Norm', norm: '< 120/80 mmHg (Target <130/80)',
       avgLabel: 'Post-Stroke Cohort Avg', avg: '136/84 mmHg',
       initial: '134/82 mmHg', current: '128/78 mmHg (Within AHA Target)',
-      reference: { label: 'AHA/ASA secondary-prevention BP target', url: 'https://doi.org/10.1161/STR.0000000000000375' },
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Sec. 5.8, p. e575: secondary-prevention context)', url: strokeRehab2026 },
+        { label: 'AHA/ASA Secondary Stroke Prevention CPG (Kleindorfer et al., 2021, hypertension recommendations: <130/80 mmHg for most patients with hypertension)', url: 'https://doi.org/10.1161/STR.0000000000000375' },
+      ],
+      citationScope: 'The prevention target is a treatment goal, not an age/sex population mean; 136/84 mmHg is a configured cohort comparator.',
     },
     {
       title: 'Resting Heart Rate & Autonomic Tone',
@@ -172,6 +200,11 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       avgLabel: 'Post-Stroke Cohort Avg', avg: '76 bpm',
       initial: '74 bpm', current: '72 bpm (Stable rate)',
       note: 'Heart rate alone does not establish sinus rhythm or autonomic status.',
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Sec. 5.5, supportive text 3, p. e564: poststroke resting HR and HRR dosing)', url: strokeRehab2026 },
+        { label: 'APTA Locomotor CPG (Hornby et al., 2020, Action Statement 1, p. 63: exercise intensity and monitoring)', url: locomotor2020 },
+      ],
+      citationScope: 'Exercise-dosing guidance does not establish the displayed 60–75 bpm healthy range or 76 bpm cohort mean; these are case comparators.',
     },
     {
       title: 'Cardiorespiratory Fitness (VO2 Peak — Submaximal Est.)',
@@ -179,6 +212,12 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       avgLabel: 'Post-Stroke Cohort Avg', avg: '15.5 mL/kg/min (Independent ADL >15.0)',
       initial: '13.4 mL/kg/min', current: '11.2 mL/kg/min (▼ Fatigue limited; may be correlated with titration)',
       note: 'Submaximal estimate; fatigue may be correlated with medication titration.',
+      citations: [
+        { label: 'APTA Locomotor CPG (Hornby et al., 2020, Action Statement 1, pp. 63–64: exercise intensity and %VO2 peak protocols)', url: locomotor2020 },
+        { label: 'AHA/ASA Stroke Exercise Statement (Billinger et al., 2014)', url: 'https://pubmed.ncbi.nlm.nih.gov/24846875/' },
+        { label: 'AHA/ASA Stroke Rehab CPG (Winstein et al., 2016, Deconditioning and Fitness: 15–18 mL/kg/min independent-living context)', url: 'https://doi.org/10.1161/STR.0000000000000098' },
+      ],
+      citationScope: 'This is not a universal >15.0 ADL cutoff. The displayed 28.0 healthy and 15.5 cohort values are configured comparators, not verified ACSM age/sex norms.',
     },
   ],
   ot: [
@@ -187,6 +226,11 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       normLabel: 'Healthy Norm (Intact UE)', norm: '66 / 66',
       avgLabel: 'Stroke Cohort Avg (12 wk)', avg: '38 / 66 (Moderate Impairment)',
       initial: '18 / 66 (Severe Impairment)', current: '22 / 66 (▲ +4 pts · Proximal Gain)',
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Table 4, p. e550: UE motor scale 0–66)', url: strokeRehab2026 },
+        { label: 'Fugl-Meyer et al., 1975, pp. 13–31: original motor assessment', url: 'https://pubmed.ncbi.nlm.nih.gov/1135616/' },
+      ],
+      citationScope: '66 is the scale maximum, not an age-matched mean. The 38/66 cohort comparator is a configured case benchmark.',
     },
     {
       title: 'Right Elbow Modified Ashworth Scale (Spasticity / Tone)',
@@ -194,7 +238,11 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       avgLabel: 'Post-Stroke Spasticity Avg', avg: 'Grade 1+ to Grade 2',
       initial: 'Grade 2 (Marked tone increase)',
       current: 'Grade 2 (Persistent R elbow flexor tone)',
-      reference: { label: 'Modified Ashworth scoring definitions', url: 'https://www.sralab.org/rehabilitation-measures/ashworth-scale-modified-ashworth-scale' },
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Table 4, p. e550; Sec. 5.3, p. e559: tone assessment and management)', url: strokeRehab2026 },
+        { label: 'Bohannon & Smith, 1987, pp. 206–207: Modified Ashworth Scale', url: 'https://pubmed.ncbi.nlm.nih.gov/3809245/' },
+      ],
+      citationScope: 'Grade 0 describes no tone increase. Grade 1+ to 2 is a case comparator, not an established average for all stroke survivors.',
     },
     {
       title: 'Right Grip Dynamometry & 9-Hole Peg Dexterity',
@@ -202,6 +250,12 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       avgLabel: 'Stroke Cohort Avg (Paretic UE)', avg: '32 lbs Grip · 65 sec (9-HPT)',
       initial: '8 lbs Grip · 9-HPT: >120s (Unable)',
       current: '12 lbs Grip (▲ +4 lbs) · 9-HPT: Limited by flexor synergy',
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Table 4, p. e550: grip/pinch dynamometry)', url: strokeRehab2026 },
+        { label: 'Mathiowetz et al., 1985, pp. 69–74: adult grip and pinch norms', url: 'https://pubmed.ncbi.nlm.nih.gov/3970660/' },
+        { label: 'Mathiowetz et al., 1985, pp. 24–38: adult Nine-Hole Peg Test norms', url: 'https://doi.org/10.1177/153944928500500102' },
+      ],
+      citationScope: 'Norms depend on age band, tested hand and protocol. The displayed grip/peg comparators are case benchmarks, not exact M 65–70 values verified from these papers.',
     },
   ],
   slp: [
@@ -211,6 +265,11 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       avgLabel: 'Post-Stroke Aphasia Avg', avg: '65% Accuracy',
       initial: '37% Accuracy', current: '55% Accuracy (▲ +18% · Progressing)',
       note: '37% → 55% is an increase of 18 percentage points.',
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Sec. 4.3, p. e551; Sec. 6.2, p. e588: communication assessment and treatment)', url: strokeRehab2026 },
+        { label: 'Tombaugh & Hubley, 1997, pp. 922–932: 60-item Boston Naming Test age/education norms', url: 'https://pubmed.ncbi.nlm.nih.gov/9524887/' },
+      ],
+      citationScope: 'BNT norms depend on test version, age and education. The 95% healthy and 65% aphasia values are configured comparators, not universal norms.',
     },
     {
       title: 'WAB-R Aphasia Quotient (Global Language Severity)',
@@ -219,6 +278,12 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       initial: '64.2 / 100 (Moderate Expressive)',
       current: '71.8 / 100 (▲ +7.6 pts · Approaching Mild >76)',
       note: '71.8 remains in the moderate AQ severity band; the cutoff does not exclude all residual language deficits.',
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Sec. 4.3, p. e551; Sec. 6.2, p. e588)', url: strokeRehab2026 },
+        { label: 'WAB-R (Kertesz, 2007): publisher assessment information', url: 'https://www.pearsonassessments.com/content/dam/school/global/clinical/us/assets/wab-r/wabr-brochure.pdf' },
+        { label: 'Discourse Characteristics in Aphasia Beyond the Western Aphasia Battery Cutoff: limitations of the 93.8 threshold', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC5829792/' },
+      ],
+      citationScope: 'AQ 93.8 is a classification threshold, not an age/sex normative mean. The 68.0 cohort value is a configured comparator.',
     },
     {
       title: 'Cognitive-Linguistic Endurance Window (Sustained Discourse)',
@@ -226,6 +291,11 @@ export const comparisons: Record<Specialty, NormativeComparison[]> = {
       avgLabel: 'Post-Stroke Aphasia Avg', avg: '35 mins before word-finding decay',
       initial: '30 mins tolerance', current: '20 mins (▼ -10 mins · Fatigue may be correlated with Baclofen titration)',
       note: 'Reduced endurance may be correlated with the 10/06 Baclofen increase.',
+      citations: [
+        { label: '2026 AHA/ASA Stroke Rehab CPG (Richards et al., Sec. 3.9, pp. e544–e545: poststroke fatigue)', url: strokeRehab2026 },
+        { label: 'ASHA Aphasia Practice Portal, Assessment: account for endurance and fatigue during testing', url: 'https://www.asha.org/practice-portal/clinical-topics/aphasia/' },
+      ],
+      citationScope: 'These sources do not define a standardized discourse-duration norm. The >60-min healthy and 35-min cohort entries are case comparators, not published cutoffs.',
     },
   ],
 };
