@@ -43,6 +43,8 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
     assert.match(card, /text-xs text-slate-500 mt-2 leading-relaxed/);
     assert.match(card, /href="https:\/\//);
     assert.match(card, /rel="noopener noreferrer"/);
+    assert.doesNotMatch(card, /<p[ >]|mt-1 block/);
+    assert.match(card, /<\/footer><\/article>$/);
   }
   assert.doesNotMatch(normativePanel, /Not supplied|Not recorded|Not re-measured|missing reference values and measurements/);
   assert.match(normativePanel, /Age\/Gender Matched Reference Values \(M, 65–70\)/);

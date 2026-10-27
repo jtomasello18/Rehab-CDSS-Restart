@@ -173,9 +173,7 @@ function NormativePanel({ specialty }: { specialty: Specialty }) {
                 {index > 0 && '; '}
                 <a className="underline decoration-slate-300 underline-offset-2 hover:text-[#145b6e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#145b6e]" href={citation.url} target="_blank" rel="noopener noreferrer">{citation.label}</a>
               </React.Fragment>)}.
-              <span className="mt-1 block">{comparison.citationScope}</span>
             </footer>
-            {comparison.note && <p className="mt-2 text-xs leading-relaxed text-slate-500">{comparison.note}</p>}
           </article>)}
         </div>
       </CardContent>
