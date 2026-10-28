@@ -5,7 +5,8 @@ import ariaLogo from '../assets/aria-logo.svg';
 import '../styles/ChartingWorkspace.css';
 import { applyClinicalCorrections } from '../utils/clinicalCorrections';
 import { expandClinicalShorthand, type SoapNote } from '../utils/clinicalSoap';
-import { addSkilledJustification, alignCpt, applyLocalInstruction, condenseSoap } from '../utils/soapRefinements';
+import { applyLocalInstruction } from '../utils/soapRefinements';
+import { getScribeQuickActions } from '../utils/scribeQuickActions';
 
 type DraftSource = 'claude' | 'local' | 'manual' | 'error';
 type GenerationResult = { requestId: string; error: string | null; generated_at?: string };
@@ -33,9 +34,9 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
   const [captureStatus, setCaptureStatus] = useState('Ready for a clinician-entered transcript or shorthand.');
   const [smartEditPrompt, setSmartEditPrompt] = useState('');
   const [refinementStatus, setRefinementStatus] = useState('');
-  const [condensedSnapshot, setCondensedSnapshot] = useState<SoapNote | null>(null);
   const [signed, setSigned] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const refinementInputRef = useRef<HTMLInputElement>(null);
   const pendingRequestRef = useRef<string | null>(null);
   const appliedResponseRef = useRef<string | null>(responseToken(args));
   const generationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -99,7 +100,6 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
       return;
     }
     setSoap(args.soap);
-    setCondensedSnapshot(null);
     setDraftSource('claude');
     setGenerationError(null);
     setSigned(false);
@@ -112,7 +112,6 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     setDraftSource('manual');
     setGenerationError(null);
     setSoap(current => ({ ...current, [section]: value }));
-    setCondensedSnapshot(null);
     setRefinementStatus('');
     setSigned(false);
   };
@@ -128,7 +127,6 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     setSoap(emptySoap());
     setDraftSource('manual');
     setSigned(false);
-    setCondensedSnapshot(null);
     setGenerationError(null);
     setRefinementStatus('');
     setSmartEditPrompt('');
@@ -191,7 +189,6 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     setGenerationError(null);
     setSigned(false);
     setRefinementStatus('');
-    setCondensedSnapshot(null);
     setCaptureStatus('Claude is generating a SOAP draft from the entered transcript…');
     generationTimerRef.current = setTimeout(() => {
       if (pendingRequestRef.current === id) applyLocalDraft(id, 'Local shorthand draft ready. Review every section; Claude may refine it until you edit.');
@@ -216,7 +213,6 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     setIsGenerating(true);
     setSigned(false);
     setGenerationError(null);
-    setCondensedSnapshot(null);
     setRefinementStatus('Applying your refinement with Claude…');
     generationTimerRef.current = setTimeout(() => {
       if (pendingRequestRef.current === id) {
@@ -233,28 +229,6 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
     }
   };
 
-  const applySmartEdit = (kind: 'audit' | 'cpt' | 'concise') => {
-    if (!canRefine) return;
-    if (kind === 'cpt') {
-      const source = condensedSnapshot ?? soap;
-      requestRefinement('Align with CPT 97116 & 97112', source, alignCpt(source, discipline));
-      return;
-    }
-    draftEditedRef.current = true;
-    setDraftSource('manual');
-    if (kind === 'concise') {
-      setSoap(condensedSnapshot ?? condenseSoap(soap));
-      setCondensedSnapshot(condensedSnapshot ? null : soap);
-      setRefinementStatus(condensedSnapshot ? 'Full narrative restored.' : 'Condensed summary applied to all four SOAP sections.');
-    } else {
-      const base = condensedSnapshot ?? soap;
-      setSoap(addSkilledJustification(base, discipline));
-      setCondensedSnapshot(null);
-      setRefinementStatus('Clinical skilled justification updated in Assessment.');
-    }
-    setSigned(false);
-  };
-
   const submitSmartEdit = () => {
     const request = smartEditPrompt.trim();
     if (!request || !canRefine) return;
@@ -263,7 +237,6 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
       draftEditedRef.current = true;
       setDraftSource('manual');
       setSoap(transformed);
-      setCondensedSnapshot(null);
       setRefinementStatus(JSON.stringify(transformed) === JSON.stringify(soap) ? 'The note already matches this refinement.' : 'Refinement applied — review the updated SOAP sections.');
       setSigned(false);
     } else {
@@ -318,14 +291,18 @@ export default function ScribeTab({ args = {} }: { args?: ScribeArgs }) {
         </section>
 
         <section className="bg-white border border-slate-300 rounded-xl shadow-sm p-4 space-y-3">
-          <div><h2 className="font-semibold text-slate-800">Clinical Documentation Refinement &amp; Audit Defense</h2><p className="text-xs text-slate-500 mt-1">Apply a focused refinement, then review the updated SOAP text.</p></div>
+          <div><h2 className="font-semibold text-slate-800">Clinical Documentation Refinement &amp; Audit Defense</h2><p className="text-xs text-slate-500 mt-1">Choose a refinement, review the prompt, then select Apply.</p></div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={!canRefine} onClick={() => applySmartEdit('audit')} className="scribe-action-chip">Medicare Part B Skilled Justification</button>
-            <button type="button" disabled={!canRefine} onClick={() => applySmartEdit('cpt')} className="scribe-action-chip">Align with CPT 97116 &amp; 97112</button>
-            <button type="button" aria-pressed={!!condensedSnapshot} disabled={!canRefine} onClick={() => applySmartEdit('concise')} className="scribe-action-chip">{condensedSnapshot ? 'Restore Full Narrative' : 'Condense Narrative'}</button>
+            {getScribeQuickActions(discipline).map(action => (
+              <button key={action.label} type="button" disabled={!canEdit || isGenerating} onClick={() => {
+                setSmartEditPrompt(action.prompt);
+                setRefinementStatus('');
+                refinementInputRef.current?.focus();
+              }} className="scribe-action-chip">{action.label}</button>
+            ))}
           </div>
           <div className="flex gap-2">
-            <input aria-label="Documentation refinement request" value={smartEditPrompt} onChange={event => setSmartEditPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && canRefine) submitSmartEdit(); }} disabled={!canRefine} placeholder="Ask ARIA to edit or format your note..." className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100" />
+            <input ref={refinementInputRef} aria-label="Documentation refinement request" value={smartEditPrompt} onChange={event => setSmartEditPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && canRefine) submitSmartEdit(); }} disabled={!canEdit || isGenerating} placeholder="Ask ARIA to edit or format your note..." className="min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#145b6e]/25 disabled:bg-slate-100" />
             <button type="button" onClick={submitSmartEdit} disabled={!canRefine || !smartEditPrompt.trim()} className="scribe-button scribe-button-primary"><Send className="h-4 w-4 shrink-0" aria-hidden="true" />Apply</button>
           </div>
           {refinementStatus && <p role="status" className="inline-flex items-center gap-2 rounded-md border border-[#145b6e]/20 bg-[#f0f7f9] px-3 py-2 text-xs font-medium text-[#145b6e]"><CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />{refinementStatus}</p>}

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { getScribeQuickActions } from '../src/utils/scribeQuickActions';
 import { expandClinicalAbbreviations, expandClinicalShorthand } from '../src/utils/clinicalSoap';
 import { addSkilledJustification, alignCpt, applyLocalInstruction, condenseSoap } from '../src/utils/soapRefinements';
 const source = `s: pt reports 2 near-falls catching R toe on rug; drowsy after 10/06 Baclofen increase to 10mg TID; goal mailbox.
@@ -133,3 +134,16 @@ assert.match(combinedTime.objective, /10–15 min/);
 const denied = alignCpt({ ...timed, objective: 'Gait training not performed.\nBalance training not performed.' }, 'PT Skilled SOAP');
 assert.doesNotMatch(denied.objective, /97116|97112/);
 console.log('CPT checks passed: no meta-headers, attributed minutes, distinct goals, single schedule and no fabricated services.');
+
+const expectedQuickActions: Record<string, string[]> = {
+  'PT Skilled SOAP': ['Medicare Part B Skilled Justification', 'Align with CPT 97116 (Gait) & 97112 (Neuro)', 'Condense Narrative'],
+  'OT Functional SOAP': ['Medicare Part B Skilled Justification', 'Align with CPT 97530 (Therapeutic Act)', 'Highlight ADL & FMA-UE Deficits'],
+  'SLP Cognitive-Linguistic SOAP': ['Medicare Part B Skilled Justification', 'Align with CPT 92507 (Speech/Cognitive)', 'Highlight Aphasia/Fatigue Impact'],
+  'MD Neuro Follow-up': ['Align with E/M Level 4 (99214) Complexity', 'Highlight Medical Decision Making (MDM)', 'Condense Narrative'],
+};
+for (const [template, labels] of Object.entries(expectedQuickActions)) {
+  const actions = getScribeQuickActions(template);
+  assert.deepEqual(actions.map(action => action.label), labels);
+  assert.ok(actions.every(action => action.prompt.trim().length > 0 && action.prompt.length <= 2000), 'Quick actions fit the backend refinement contract');
+}
+assert.deepEqual(getScribeQuickActions('unknown template'), getScribeQuickActions('PT Skilled SOAP'));
