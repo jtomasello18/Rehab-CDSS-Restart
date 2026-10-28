@@ -1,0 +1,89 @@
+{
+  "patientId": "482910",
+  "patientName": "Ed Vance",
+  "version": "2026-10-28",
+  "provenance": "Clinician-supplied longitudinal case record; local chart index, not a live FHIR feed.",
+  "records": [
+    {
+      "id": "acute-0721", "date": "07/21/2026", "title": "Acute admission / MRI brain", "author": "Hartford Hospital", "kind": "imaging",
+      "entries": [
+        { "topics": ["stroke", "admission", "diagnosis", "nihss", "imaging", "mri", "brain"], "text": "Acute left MCA ischemic stroke; NIHSS 9. MRI brain showed an acute left corona radiata / posterior limb of the internal capsule infarct." },
+        { "topics": ["medications", "aspirin", "atorvastatin", "lisinopril", "prevention"], "text": "Started aspirin 81 mg daily, atorvastatin 80 mg daily, and lisinopril 10 mg daily at acute admission. Later discontinuation or changes to these three medications are not documented in this index." }
+      ]
+    },
+    {
+      "id": "irf-0929", "date": "09/29/2026", "title": "Week 10 · IRF discharge", "author": "Rehabilitation team", "kind": "note",
+      "entries": [
+        { "topics": ["discharge", "home", "spouse", "martha", "social", "goals"], "text": "Discharged home with spouse Martha. Shared rehabilitation goals: walk to the mailbox independently and feed himself using the dominant right hand." },
+        { "topics": ["pt", "gait", "10mwt", "bbs", "balance", "tug", "mobility"], "text": "10-Meter Walk Test: 0.48 m/s (limited community ambulation); Berg Balance Scale: 42/56; Timed Up & Go: 16.2 sec." },
+        { "topics": ["ot", "fma", "upper extremity"], "text": "Fugl-Meyer Upper Extremity: 20/66 in the supplied IRF discharge record." },
+        { "topics": ["slp", "wab", "aphasia", "language"], "text": "WAB-R Aphasia Quotient: 71.0 at IRF discharge, as reported in the 10/10 SLP follow-up." },
+        { "topics": ["vitals", "bp", "hr", "vo2", "fitness"], "text": "BP 134/82 mmHg; heart rate 74 bpm; estimated VO2 peak 13.4 mL/kg/min." },
+        { "topics": ["baclofen", "medications", "spasticity", "dose"], "text": "Baclofen 5 mg three times daily (15 mg/day) for mild spasticity." }
+      ]
+    },
+    {
+      "id": "neuro-1006", "date": "10/06/2026", "title": "Week 11 · Neurology follow-up", "author": "Dr. S. Lin, MD", "kind": "note",
+      "entries": [
+        { "topics": ["baclofen", "medications", "dose", "change", "spasticity", "mas", "tone", "md"], "text": "Oral baclofen doubled from 5 mg three times daily (15 mg/day) to 10 mg three times daily (30 mg/day), targeting right elbow flexor tone (Modified Ashworth Grade 2) and right ankle plantarflexor tone." },
+        { "topics": ["pt", "gait", "10mwt", "bbs", "tug", "timeline"], "text": "No 10MWT, BBS, or TUG remeasurement is documented in this neurology visit." }
+      ]
+    },
+    {
+      "id": "labs-1006", "date": "10/06/2026", "title": "CMP / lipid panel / HbA1c", "author": "Laboratory results", "kind": "labs",
+      "entries": [
+        { "topics": ["labs", "renal", "kidney", "egfr", "creatinine", "cmp"], "text": "eGFR 78 mL/min/1.73 m²; creatinine 0.98 mg/dL." },
+        { "topics": ["labs", "ldl", "lipids", "cholesterol", "hba1c", "diabetes"], "text": "LDL 64 mg/dL; HbA1c 5.6%." },
+        { "topics": ["labs", "cmp", "sodium", "potassium", "electrolytes"], "text": "Sodium 139 and potassium 4.2; units and laboratory reference intervals were not supplied." }
+      ]
+    },
+    {
+      "id": "ot-1010", "date": "10/10/2026", "title": "Week 11.5 · OT outpatient visit", "author": "M. Patel, OTR/L", "kind": "note",
+      "entries": [
+        { "topics": ["ot", "fma", "upper extremity", "peg", "box", "dexterity", "hand"], "text": "FMA-UE improved to 22/66; 9-Hole Peg Test 58 sec; Box & Block Test 18 blocks." },
+        { "topics": ["ot", "shoulder", "subluxation", "sling", "upper extremity", "safety"], "text": "Approximately one-finger right glenohumeral subluxation. OT specified a GivMohr sling during ambulation and strict avoidance of passive shoulder traction." },
+        { "topics": ["ot", "feeding", "adl", "utensils", "goals"], "text": "Self-feeding progressing with built-up utensils." }
+      ]
+    },
+    {
+      "id": "slp-1010", "date": "10/10/2026", "title": "Week 11.5 · SLP outpatient visit", "author": "R. Gomez, CCC-SLP", "kind": "note",
+      "entries": [
+        { "topics": ["slp", "wab", "aphasia", "language", "communication", "naming"], "text": "WAB-R Aphasia Quotient 76.4, up from 71.0 at IRF discharge; mild-to-moderate expressive aphasia with word-finding pauses." },
+        { "topics": ["slp", "swallow", "diet", "dysphagia", "fois", "nutrition"], "text": "Safe swallowing on regular solids and thin liquids; FOIS Level 7, with no dysphagia documented." },
+        { "topics": ["slp", "fatigue", "endurance", "cognition", "sedation"], "text": "Marked cognitive-linguistic fatigue after 20 minutes of sustained task demand." }
+      ]
+    },
+    {
+      "id": "pt-1013", "date": "10/13/2026", "title": "Week 12 · Outpatient PT evaluation", "author": "J. Morales, PT", "kind": "note",
+      "entries": [
+        { "topics": ["pt", "baclofen", "fatigue", "falls", "sedation", "safety", "symptoms"], "text": "Patient reported sluggishness and two near-falls at home, catching the right toe on a living room rug since the 10/06 baclofen increase." },
+        { "topics": ["pt", "gait", "10mwt", "bbs", "balance", "tug", "mobility", "regression"], "text": "10MWT 0.35 m/s, down 0.13 m/s from 09/29 and below 0.40 m/s; BBS 38/56, down 4 points; TUG 21.4 sec, 5.2 sec slower. The PT evaluation identifies household-only ambulation and elevated fall risk." },
+        { "topics": ["pt", "brunnstrom", "mas", "tone", "spasticity", "upper extremity"], "text": "Brunnstrom Right LE Stage 4; Modified Ashworth Grade 2 right elbow flexors and Grade 1+ right ankle plantarflexors." },
+        { "topics": ["pt", "afo", "orthosis", "foot drop", "device", "gait"], "text": "A solid ankle-foot orthosis trial immediately reduced swing-phase toe drag." },
+        { "topics": ["vitals", "bp", "hr", "vo2", "fitness"], "text": "BP 128/78 mmHg; heart rate 72 bpm; submaximal estimated VO2 11.2 mL/kg/min." }
+      ]
+    },
+    {
+      "id": "tracker-1013", "date": "10/13/2026", "title": "Existing multidisciplinary tracker snapshot", "author": "ARIA Patient Tracker", "kind": "note",
+      "entries": [
+        { "topics": ["pt", "device", "mobility", "gait", "brunnstrom"], "text": "The existing outpatient chart records 50 ft with a hemi-walker and standby assistance; absent right heel strike, severe swing-phase foot drop, and right hip hiking/circumduction. Brunnstrom Right UE Stage 3 and Right LE Stage 4." },
+        { "topics": ["pt", "sit to stand", "5sts", "transfers"], "text": "Five-times sit-to-stand: 17 sec at IRF discharge (09/29), 21 sec at the outpatient evaluation (10/13)." },
+        { "topics": ["ot", "fma", "grip", "peg", "feeding"], "text": "Existing tracker values: FMA-UE 18/66 at 09/29 and 22/66 at 10/13; right grip 8 lb at 09/29 and 12 lb at 10/13. The 10/13 tracker describes the 9-Hole Peg Test as unable due to flexor synergy and self-feeding goal completion at 25%." },
+        { "topics": ["slp", "wab", "naming", "fatigue"], "text": "Existing tracker values: Boston naming accuracy 37% at 09/29 and 55% at 10/13; WAB-R Aphasia Quotient 64.2 at 09/29 and 71.8 at 10/13; cognitive fatigue threshold 30 minutes at 09/29 and 20 minutes at 10/13." }
+      ]
+    },
+    {
+      "id": "chart-profile", "date": null, "title": "Chart profile · date not supplied", "author": "Patient registration", "kind": "profile",
+      "entries": [
+        { "topics": ["allergies", "penicillin", "latex"], "text": "Allergies: penicillin — hives; latex — mild reaction (reaction type not specified)." },
+        { "topics": ["insurance", "medicare", "visits", "coverage"], "text": "Medicare Part B; 12 of 20 visits used in the supplied record. This is a chart utilization entry, not verification of coverage or a universal Medicare visit limit." },
+        { "topics": ["identity", "name", "age", "mrn", "patient"], "text": "Ed Vance, 67-year-old male, MRN 482910." }
+      ]
+    }
+  ],
+  "reconciliation": [
+    { "topics": ["fma", "ot"], "text": "The supplied discharge record lists FMA-UE 20/66; the existing tracker baseline lists 18/66. Verify the original assessment before calculating a cross-source delta." },
+    { "topics": ["wab", "slp", "language"], "text": "The supplied SLP record lists WAB-R 71.0 → 76.4 (09/29 → 10/10); the tracker lists 64.2 → 71.8 (09/29 → 10/13). These entries have not been reconciled." },
+    { "topics": ["peg", "dexterity", "ot"], "text": "The 10/10 OT record lists a 58-second peg test; the tracker’s 10/13 entry describes inability due to flexor synergy. Confirm test conditions before interpreting this difference." }
+  ]
+}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   AlertCircle, AlertTriangle, Info, Stethoscope,
-  PersonStanding, Hand, MessageSquare, ChevronDown,
+  PersonStanding, Hand, MessageSquare, ChevronDown, PanelRightClose, PanelRightOpen,
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -10,6 +10,8 @@ import {
   normativePanelDescription, safetyFlags,
   type Specialty, type Tone, type TrackerMetric,
 } from '../data/patientTracker';
+import ChartCopilot, { type CopilotArgs } from './ChartCopilot';
+import '../styles/ChartCopilot.css';
 
 function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
 
@@ -62,7 +64,7 @@ function MetricPanel({ specialty }: { specialty: Specialty }) {
   return (
     <Card className="col-span-full">
       <CardHeader>{titles[specialty]}</CardHeader>
-      <CardContent className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2', 'xl:grid-cols-4')}>
+      <CardContent className="tracker-metric-grid grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {trackerMetrics[specialty].map(metric => <LongitudinalMetric key={metric.id} metric={metric} />)}
       </CardContent>
     </Card>
@@ -91,7 +93,7 @@ function CareTeamPulse({ activeView, onSelect }: { activeView: Specialty; onSele
         <h2 id="care-team-title" className="text-sm font-bold text-slate-800">Multidisciplinary Care Team Pulse</h2>
         <p className="text-xs text-slate-500">Case snapshot · Current 10/13 · Select a specialty</p>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="tracker-pulse-grid grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {careTeam.map(team => {
           const Icon = specialties.find(s => s.id === team.id)!.icon;
           return (
@@ -162,7 +164,7 @@ function NormativePanel({ specialty }: { specialty: Specialty }) {
       <CardHeader>Normative Performance Panel</CardHeader>
       <CardContent>
         <p className="mb-5 text-xs leading-relaxed text-slate-500">{normativePanelDescription}</p>
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="tracker-normative-grid grid gap-6 md:grid-cols-3">
           {comparisons[specialty].map(comparison => <article key={comparison.title} className="min-w-0"><h3 className="mb-3 text-sm font-semibold text-slate-800">{comparison.title}</h3><dl className="space-y-1 text-xs">{[
             [comparison.normLabel, comparison.norm], [comparison.avgLabel, comparison.avg],
             ['Vance, E. IRF Discharge (09/29)', comparison.initial], ['Vance, E. Outpatient Eval (10/13)', comparison.current],
@@ -181,19 +183,24 @@ function NormativePanel({ specialty }: { specialty: Specialty }) {
   );
 }
 
-type StreamlitArgs = { role?: string; trackerEvidence?: unknown };
+type StreamlitArgs = CopilotArgs & { role?: string; trackerEvidence?: unknown };
 export default function App({ args = {} }: { args?: StreamlitArgs }) {
   const initialViews: Record<string, Specialty> = { PT: 'pt', MD: 'physician', Physician: 'physician', OT: 'ot', SLP: 'slp' };
   const [activeView, setActiveView] = useState<Specialty>(initialViews[args.role ?? ''] ?? 'physician');
+  const [copilotOpen, setCopilotOpen] = useState(true);
   const ActiveIcon = specialties.find(s => s.id === activeView)!.icon;
   return (
     <div className="min-h-screen bg-transparent font-sans text-slate-800">
       <PatientBanner />
       <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 py-6">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div><h1 className="text-2xl font-bold tracking-tight">ARIA Patient Tracker</h1><p className="mt-1 text-sm text-slate-500">Longitudinal, multidisciplinary care · Stroke rehabilitation</p></div>
-          <div className="relative"><label htmlFor="tracker-specialty" className="sr-only">Specialty view</label><select id="tracker-specialty" value={activeView} onChange={e => setActiveView(e.target.value as Specialty)} className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm font-semibold shadow-sm focus:border-[#145b6e] focus:outline-none focus:ring-2 focus:ring-[#145b6e]/25 sm:w-72">{specialties.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select><ActiveIcon className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[#145b6e]" aria-hidden="true" /><ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-slate-500" aria-hidden="true" /></div>
+          <div className="flex flex-wrap items-center gap-3"><div className="relative"><label htmlFor="tracker-specialty" className="sr-only">Specialty view</label><select id="tracker-specialty" value={activeView} onChange={e => setActiveView(e.target.value as Specialty)} className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-10 text-sm font-semibold shadow-sm focus:border-[#145b6e] focus:outline-none focus:ring-2 focus:ring-[#145b6e]/25 sm:w-72">{specialties.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select><ActiveIcon className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-[#145b6e]" aria-hidden="true" /><ChevronDown className="pointer-events-none absolute right-3 top-3 h-4 w-4 text-slate-500" aria-hidden="true" /></div>
+            <button type="button" aria-expanded={copilotOpen} aria-controls="chart-copilot-dock" onClick={() => setCopilotOpen(open => !open)} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-[#145b6e] hover:bg-[#f0f7f9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#145b6e]">{copilotOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}{copilotOpen ? 'Collapse Copilot' : 'Expand Copilot'}</button>
+          </div>
         </div>
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+        <div className={cn('tracker-main min-w-0 space-y-6', copilotOpen ? 'lg:col-span-8' : 'lg:col-span-12')}>
         <CareTeamPulse activeView={activeView} onSelect={setActiveView} />
         <section id="specialty-view" aria-label={`${specialties.find(s => s.id === activeView)!.label} details`} className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <ActiveAlerts specialty={activeView} />
@@ -202,6 +209,9 @@ export default function App({ args = {} }: { args?: StreamlitArgs }) {
           {activeView === 'ot' && <FeedingGoal />}
           <NormativePanel specialty={activeView} />
         </section>
+        </div>
+        <aside id="chart-copilot-dock" hidden={!copilotOpen} className="min-w-0 lg:sticky lg:top-6 lg:col-span-4"><ChartCopilot args={args} /></aside>
+        </div>
       </main>
     </div>
   );

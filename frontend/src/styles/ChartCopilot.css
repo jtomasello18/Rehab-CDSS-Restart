@@ -1,0 +1,16 @@
+/* Use the main column's width, not the iframe width, for its nested grids. */
+.tracker-main { container-type: inline-size; }
+.tracker-main .tracker-metric-grid,
+.tracker-main .tracker-pulse-grid,
+.tracker-main .tracker-normative-grid { grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 520px) {
+  .tracker-main .tracker-metric-grid,
+  .tracker-main .tracker-pulse-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 900px) {
+  .tracker-main .tracker-normative-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container (min-width: 1100px) {
+  .tracker-main .tracker-metric-grid,
+  .tracker-main .tracker-pulse-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

@@ -3,6 +3,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import PatientTracker from '../src/components/ProgressNoteTab';
 import { trackerMetrics, metricDelta, encounters, safetyFlags, comparisons } from '../src/data/patientTracker';
+import { answerChartQuestion, applyCopilotResult, suggestedQueries, type ChartMessage } from '../src/utils/chartCopilot';
 
 // Regressions in outcome direction must not turn a slower TUG green or round
 // small gait changes away. Unknown encounters must not become interpolations.
@@ -31,6 +32,10 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
   assert.equal((markup.match(/aria-pressed=/g) ?? []).length, 4);
   assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 1);
   assert.equal((markup.match(/data-metric=/g) ?? []).length, 4);
+  assert.match(markup, /ARIA Chart Copilot/);
+  assert.match(markup, /Collapse Copilot/);
+  assert.match(markup, /lg:col-span-8/);
+  assert.match(markup, /lg:sticky lg:top-6 lg:col-span-4/);
   assert.match(markup, /Vance, E\. IRF Discharge \(09\/29\)/);
   assert.match(markup, /Vance, E\. Outpatient Eval \(10\/13\)/);
   const normativePanel = markup.slice(markup.indexOf('Normative Performance Panel'));
@@ -109,3 +114,25 @@ assert.match(comparisons.pt[1].citations[1].label, /Table 7, p\. 192/);
 assert.match(comparisons.pt[2].citations[1].label, /8\.1 sec/);
 assert.match(comparisons.slp[2].citationScope, /do not define a standardized discourse-duration norm/);
 console.log('Patient Tracker checks passed: clinical values, 12 linked citation footers across all specialties, and no CPG Alerts, including stale evidence payloads.');
+
+for (const [index, expected] of ['0.35 m/s', '21.4 sec', '0.98 mg/dL', '20 minutes'].entries()) {
+  const answer = answerChartQuestion(suggestedQueries[index]);
+  assert.match(answer.answer, new RegExp(expected.replace('.', '\\.')));
+  assert.ok(answer.sourceIds.length >= 2);
+}
+assert.match(answerChartQuestion('What are his allergies?').answer, /penicillin — hives/);
+assert.match(answerChartQuestion('Insurance and visits used?').answer, /12 of 20/);
+assert.match(answerChartQuestion('Blood pressure on 09/29/2026?').answer, /134\/82/);
+assert.deepEqual(answerChartQuestion('Labs on 10/22/2026?').sourceIds, []);
+assert.deepEqual(answerChartQuestion('Troponin?').sourceIds, []);
+assert.deepEqual(answerChartQuestion('MRN 12345 medications?').sourceIds, []);
+assert.match(answerChartQuestion('FMA and WAB trajectory').answer, /Chart reconciliation/);
+assert.match(answerChartQuestion('And on 10/13?', 'Berg balance?').answer, /38\/56/);
+const messages: ChartMessage[] = [{ id: 'q1:answer', role: 'assistant', ...answerChartQuestion('MRI?') }];
+const reply = { requestId: 'q1', patientId: '482910', answer: 'Dated chart synthesis.', sourceIds: ['acute-0721'], mode: 'claude' as const };
+assert.equal(applyCopilotResult(messages, reply)[0].answer, reply.answer);
+assert.deepEqual(applyCopilotResult(messages, { ...reply, sourceIds: ['fabricated'] }), messages);
+assert.deepEqual(applyCopilotResult(messages, { ...reply, patientId: 'other' }), messages);
+assert.deepEqual(applyCopilotResult([], reply), [], 'Late replies cannot recreate cleared messages');
+assert.deepEqual(applyCopilotResult(messages, { ...reply, requestId: 'stale' }), messages);
+console.log('Chart Copilot checks passed: instant queries, dated sources, missing facts, conflicting records, and stale/patient-scoped replies.');

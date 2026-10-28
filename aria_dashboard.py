@@ -862,10 +862,15 @@ def render_professor_dashboard(figma_component, role="Viewer"):
         render_intake(case)
     elif view == V_PROGRESS_NOTE:
         from professor_aria.patient_tracker import tracker_evidence
+        from professor_aria.chart_copilot import handle_copilot_event
         tracker_action = figma_component(
             view="progress_note", role=st.session_state.get("user_role", "Viewer"),
             trackerEvidence=tracker_evidence(), key="aria_patient_tracker",
+            copilotHistory=st.session_state.get("copilot_history", []),
+            copilotResult=st.session_state.get("copilot_result"),
         )
+        if handle_copilot_event(tracker_action, st.session_state):
+            st.rerun()
         if (isinstance(tracker_action, dict)
                 and tracker_action.get("action") == "open_evidence_bridge"
                 and tracker_action.get("requestId")
