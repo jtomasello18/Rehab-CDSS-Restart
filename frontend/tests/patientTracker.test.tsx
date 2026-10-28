@@ -92,7 +92,7 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
     assert.equal((table.match(/<tr/g) ?? []).length, 2);
     assert.match(table, /Increased to 10mg TID/);
   }
-  assert.doesNotMatch(markup, /<select[^>]*disabled/);
+  assert.doesNotMatch(markup, /<select\b|tracker-specialty|role="combobox"/);
   assert.doesNotMatch(markup, /Bayesian|Systemic Risk Profile|<svg[^>]*recharts/);
   assert.match(markup, role === 'PT' ? /data-metric="tug"/ : role === 'OT' ? /data-metric="mas"/ : role === 'SLP' ? /data-metric="wab"/ : /data-metric="baclofen"/);
 }
