@@ -1,4 +1,4 @@
-/* Use the main column's width, not the iframe width, for its nested grids. */
+/* Tracker stays full width regardless of whether Ask ARIA is open. */
 .tracker-main { container-type: inline-size; }
 .tracker-main .tracker-metric-grid,
 .tracker-main .tracker-pulse-grid,
@@ -13,4 +13,40 @@
 @container (min-width: 1100px) {
   .tracker-main .tracker-metric-grid,
   .tracker-main .tracker-pulse-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.ask-aria-panel {
+  position: fixed;
+  inset: 0 0 auto auto;
+  z-index: 50;
+  width: 24rem;
+  max-width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-left: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  box-shadow: -12px 0 48px rgba(15, 23, 42, 0.14);
+  transform: translateX(100%);
+  transition: transform 300ms ease;
+}
+.ask-aria-panel[open] { display: flex; flex-direction: column; }
+.ask-aria-panel[data-entered="true"] { transform: translateX(0); }
+.ask-aria-panel::backdrop {
+  background: rgba(15, 23, 42, 0.08);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.ask-aria-panel[data-entered="true"]::backdrop { opacity: 1; }
+.ask-aria-welcome { transition: opacity 200ms ease, transform 200ms ease, visibility 200ms; }
+.is-chatting .ask-aria-welcome { opacity: 0; transform: translateY(-20px); visibility: hidden; pointer-events: none; }
+.ask-aria-thread { opacity: 0; pointer-events: none; transition: opacity 200ms ease; }
+.is-chatting .ask-aria-thread { opacity: 1; pointer-events: auto; }
+.ask-aria-input { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+@media (prefers-reduced-motion: reduce) {
+  .ask-aria-panel, .ask-aria-panel::backdrop, .ask-aria-welcome, .ask-aria-thread { transition: none; }
 }

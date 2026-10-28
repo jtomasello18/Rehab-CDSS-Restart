@@ -32,10 +32,13 @@ for (const role of ['PT', 'MD', 'OT', 'SLP', 'Viewer']) {
   assert.equal((markup.match(/aria-pressed=/g) ?? []).length, 4);
   assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 1);
   assert.equal((markup.match(/data-metric=/g) ?? []).length, 4);
-  assert.match(markup, /ARIA Chart Copilot/);
-  assert.match(markup, /Collapse Copilot/);
-  assert.match(markup, /lg:col-span-8/);
-  assert.match(markup, /lg:sticky lg:top-6 lg:col-span-4/);
+  assert.match(markup, /Ask ARIA/);
+  assert.match(markup, /aria-expanded="false" aria-controls="ask-aria-panel"/);
+  assert.match(markup, /<dialog[^>]*id="ask-aria-panel"/);
+  assert.doesNotMatch(markup, /<dialog[^>]*\sopen(?:=|\s|>)/);
+  assert.doesNotMatch(markup, /lg:col-span-[48]|Collapse Copilot|Expand Copilot|ARIA Chart Copilot/);
+  assert.match(markup, /What&#x27;s next\?/);
+  assert.match(markup, /placeholder="Ask ARIA\.\.\."/);
   assert.match(markup, /Vance, E\. IRF Discharge \(09\/29\)/);
   assert.match(markup, /Vance, E\. Outpatient Eval \(10\/13\)/);
   const normativePanel = markup.slice(markup.indexOf('Normative Performance Panel'));
