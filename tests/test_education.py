@@ -20,7 +20,7 @@ PROGRESS = {"version": 1, "answers": {"ed": {"ed-medication": {"option": 1, "con
 class EducationTests(unittest.TestCase):
     def test_question_bank_contains_only_valid_unique_cases_and_sources(self):
         bank = curriculum()
-        self.assertEqual([len(p['questions']) for p in bank['patients']], [4, 3, 3, 3])
+        self.assertEqual([len(p['questions']) for p in bank['patients']], [6, 3, 3, 3, 1, 1, 1])
         ids = set()
         for patient in bank['patients']:
             for question in patient['questions']:
@@ -73,6 +73,25 @@ class EducationTests(unittest.TestCase):
             app.run()
             self.assertFalse(app.exception)
             self.assertEqual(app.session_state['education_progress'], PROGRESS)
+
+    def test_specialty_selection_and_answers_survive_rerun(self):
+        app = AppTest.from_string(SCRIPT).run()
+        self.assertEqual(app.session_state['last_education_args']['education_specialty'], 'md')
+        combined = deepcopy(PROGRESS)
+        for specialty in ['md', 'ot', 'slp']:
+            patient = next(p for p in curriculum()['patients'] if p['specialty'] == specialty)
+            question = patient['questions'][0]
+            combined['answers'][patient['id']] = {question['id']: {'option': question['correct'], 'confidence': None}}
+            app.session_state['education_event'] = {'type': 'education_progress', 'requestId': specialty,
+                'progress': combined, 'patientId': patient['id'], 'specialty': specialty}
+            app.run()
+            self.assertFalse(app.exception)
+            self.assertEqual(app.session_state['last_education_args']['education_specialty'], specialty)
+            self.assertEqual(app.session_state['last_education_args']['education_patient'], patient['id'])
+            self.assertEqual(app.session_state['education_progress'], combined)
+        app.session_state['education_event'] = None
+        app.run()
+        self.assertEqual(app.session_state['last_education_args']['education_progress'], combined)
 
     def test_navigation_routes_to_education_without_an_api_key(self):
         import aria_dashboard

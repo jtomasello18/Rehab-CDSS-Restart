@@ -1,6 +1,12 @@
 import curriculum from '../data/education.json';
 
 export const patients = curriculum.patients;
+export const specialties = curriculum.specialties;
+export type Specialty = 'md' | 'pt' | 'ot' | 'slp';
+export function normalizeSpecialty(value: unknown): Specialty {
+  return specialties.some(s => s.id === value) ? value as Specialty : 'md';
+}
+export const patientsForSpecialty = (specialty: Specialty) => patients.filter(p => p.specialty === specialty);
 export const domains = curriculum.domains;
 export const sources = curriculum.sources;
 export type Patient = typeof patients[number];
@@ -54,19 +60,20 @@ export function patientStats(progress: Progress, patient: Patient) {
     mastery: Math.round(100 * correct / patient.questions.length),
     completion: Math.round(100 * answered.length / patient.questions.length),
     // Demo learning points only: 0.05 per first answer; completion tops a module up to 0.25.
-    hours: complete ? 0.25 : answered.length * 0.05,
+    hours: complete ? 0.25 : Math.min(0.25, answered.length * 0.05),
   };
 }
 
-export function overallStats(progress: Progress) {
-  const stats = patients.map(patient => patientStats(progress, patient));
+export function overallStats(progress: Progress, specialty: Specialty = 'pt') {
+  const selectedPatients = patientsForSpecialty(specialty);
+  const stats = selectedPatients.map(patient => patientStats(progress, patient));
   const answered = stats.reduce((sum, s) => sum + s.answered, 0);
   const correct = stats.reduce((sum, s) => sum + s.correct, 0);
   return { answered, correct, accuracy: answered ? Math.round(100 * correct / answered) : 0,
     hours: Math.round(stats.reduce((sum, s) => sum + s.hours, 0) * 100) / 100,
     completed: stats.filter(s => s.complete).length,
-    domains: domains.map(domain => {
-      const answers = patients.flatMap(patient => patient.questions.filter(q =>
+    domains: domains.filter(domain => domain.specialty === specialty).map(domain => {
+      const answers = selectedPatients.flatMap(patient => patient.questions.filter(q =>
         q.domain === domain.id && progress.answers[patient.id]?.[q.id]
       ).map(q => progress.answers[patient.id][q.id].option === q.correct));
       const correct = answers.filter(Boolean).length;

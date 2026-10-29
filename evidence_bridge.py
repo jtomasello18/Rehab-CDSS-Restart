@@ -242,5 +242,5 @@ def render_evidence_bridge():
         except KnowledgeBaseError as exc:
             st.error(f"The knowledge base could not be read: {exc}")
     with st.container(border=True, key="bridge_query"):
-        st.markdown('<div class="aria-bridge-label">Evidence Query</div>', unsafe_allow_html=True)
+        st.markdown('<div class="aria-bridge-label">ASK ARIA</div>', unsafe_allow_html=True)
         _render_query()

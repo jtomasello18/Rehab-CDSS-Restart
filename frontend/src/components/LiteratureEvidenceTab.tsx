@@ -86,12 +86,12 @@ export default function App() {
           </div>
         </section>
 
-        {/* Bottom Section: Evidence Query Chat */}
+        {/* Bottom Section: Ask ARIA Chat */}
         <section className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col h-[400px]">
           <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-slate-500" />
             <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">
-              Evidence Query
+              Ask ARIA
             </h2>
           </div>
           

@@ -78,7 +78,7 @@ LEVEL_DESCRIPTIONS = {
     "Deep teaching": "I'll give a fuller teaching response with the reasoning explained.",
 }
 
-V_INTAKE = "EHR Sync"
+V_INTAKE = "Evidence Query"
 V_PROGRESS_NOTE = "Patient Tracker"
 V_MEASURES_TRENDS = "Measures & Trends"
 V_SCRIBE = "ARIA Scribe"
@@ -325,6 +325,7 @@ def ensure_state():
         st.session_state.case_picker = "CASE-0001"
     legacy_views = {
         "EHR Sync & Intake": V_INTAKE,
+        "EHR Sync": V_INTAKE,
         "Patient Biometrics": V_MEASURES_TRENDS,
         "Charting": V_SCRIBE,
         "ARIA Chart": V_SCRIBE,
@@ -424,7 +425,7 @@ def render_sidebar():
             with st.expander("Clinical Workflow Guide"):
                 st.markdown(
                     "- Patient chart and MA triage data are automatically synced from eClinicalWorks (eCW).\n"
-                    "- **EHR Sync**: review the synced note, choose how much detail you want, "
+                    "- **Evidence Query**: review the synced note, choose how much detail you want, "
                     "then have me read it back to confirm.\n"
                     "- **Evidence Bridge**: upload PDFs, explore the knowledge base, and ask source-grounded questions.\n"
                     "- **Evidence & Guidance**: I search PubMed and Evidence Bridge, then talk it through; reply with follow-ups.\n"
@@ -438,7 +439,7 @@ def render_sidebar():
 # Views
 # ---------------------------------------------------------------------------
 def render_intake(case):
-    st.markdown(f"##### EHR Sync · {case['name']}")
+    st.markdown(f"##### Evidence Query · {case['name']}")
     st.info("Patient chart and MA triage data automatically synced from eClinicalWorks (MRN: 482910).")
 
     render_level_selector(case)
@@ -847,7 +848,7 @@ def render_professor_dashboard(figma_component, role="Viewer"):
         st.markdown("#### Welcome to ARIA")
         st.write("I'm ARIA, your clinical thinking partner for rehabilitation, connected to the eCW chart.")
         st.markdown(
-            "1. **EHR Sync** — review the patient chart and MA triage data synced from eClinicalWorks. "
+            "1. **Evidence Query** — review the patient chart and MA triage data synced from eClinicalWorks. "
             "This is also where you choose **how much detail you want from me**.\n"
             "2. I'll **read the note back** so you can confirm I've understood it before going further.\n"
             "3. **Evidence Bridge** — upload PDFs, explore the knowledge base, and ask source-grounded questions.\n"

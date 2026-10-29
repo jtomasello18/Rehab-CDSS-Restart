@@ -2,62 +2,667 @@
   "version": 1,
   "reviewedOn": "2026-10-25",
   "domains": [
-    {"id": "safety", "label": "Neuro-Pharmacology & Safety"},
-    {"id": "biomechanics", "label": "Biomechanics & Orthotics"},
-    {"id": "outcomes", "label": "Outcome Measures & MCIDs"},
-    {"id": "billing", "label": "Medicare Part B / CPT Defense"}
+    {
+      "id": "safety",
+      "label": "Neuro-Pharmacology & Safety",
+      "specialty": "pt"
+    },
+    {
+      "id": "biomechanics",
+      "label": "Biomechanics & Orthotics",
+      "specialty": "pt"
+    },
+    {
+      "id": "outcomes",
+      "label": "Outcome Measures & MCIDs",
+      "specialty": "pt"
+    },
+    {
+      "id": "billing",
+      "label": "Medicare Part B / CPT Defense",
+      "specialty": "pt"
+    },
+    {
+      "id": "md-spasticity",
+      "label": "Pharmacology & Spasticity Management",
+      "specialty": "md"
+    },
+    {
+      "id": "ot-motor",
+      "label": "UE Recovery & Shoulder Protection",
+      "specialty": "ot"
+    },
+    {
+      "id": "slp-language",
+      "label": "Aphasia & Cognitive Pacing",
+      "specialty": "slp"
+    }
   ],
   "sources": {
-    "stroke": {"title": "AHA/ASA Guidelines for Adult Stroke Rehabilitation and Recovery (2016)", "pmid": "27145936", "url": "https://pubmed.ncbi.nlm.nih.gov/27145936/", "stars": 5, "tier": "CPG", "appraisal": "Guideline-level source; individual recommendations have different evidence certainty."},
-    "afo-review": {"title": "Efficacy of different techniques of AFO construction for hemiplegia patients (2019)", "pmid": "31456974", "url": "https://pubmed.ncbi.nlm.nih.gov/31456974/", "stars": 5, "tier": "Systematic review", "appraisal": "Nine studies; mixed hemiplegia populations and device designs limit direct generalization."},
-    "afo-trial": {"title": "Effects of ankle-foot orthoses on mediolateral foot-placement ability during post-stroke gait (2015)", "pmid": "24878846", "url": "https://pubmed.ncbi.nlm.nih.gov/24878846/", "stars": 3, "tier": "Randomized-order crossover trial", "appraisal": "Within-person biomechanical trial; no verified large sample in the abstract. Supplementary evidence."},
-    "cms": {"title": "CMS Medicare Coverage Database · Outpatient Physical and Occupational Therapy Services", "url": "https://www.cms.gov/medicare-coverage-database/view/article.aspx?articleId=56566", "stars": null, "tier": "Billing policy", "appraisal": "Policy reference, not a research study. Apply current payer, jurisdiction, and documentation rules."},
-    "pd": {"title": "APTA Physical Therapist Management of Parkinson Disease (2022)", "pmid": "34963139", "url": "https://pubmed.ncbi.nlm.nih.gov/34963139/", "stars": 5, "tier": "CPG", "appraisal": "Evidence-based guideline supporting individualized external cueing and gait training."},
-    "oh": {"title": "Consensus recommendations for neurogenic orthostatic hypotension (2017)", "pmid": "28050656", "url": "https://pubmed.ncbi.nlm.nih.gov/28050656/", "stars": 1, "tier": "Expert consensus", "appraisal": "Expert recommendations informed by available evidence; not a systematic review or trial."},
-    "mini-best": {"title": "Mini-BESTest reproducibility in mild to moderate Parkinson disease (2014)", "pmid": "25496796", "url": "https://pubmed.ncbi.nlm.nih.gov/25496796/", "stars": 2, "tier": "Measurement study · N=27", "appraisal": "Observational test–retest study; measurement error is specific to this population and protocol."},
-    "sci-autonomic": {"title": "Evaluation and Management of Autonomic Dysreflexia and Other Autonomic Dysfunctions (2021)", "pmid": "34270391", "url": "https://pubmed.ncbi.nlm.nih.gov/34270391/", "stars": 5, "tier": "SCI clinical practice guideline", "appraisal": "Guideline-level source; several immediate-care recommendations rely on expert consensus."},
-    "scim": {"title": "SCIM III reliability and validity in a multicenter international study (2007)", "pmid": "17852230", "url": "https://pubmed.ncbi.nlm.nih.gov/17852230/", "stars": 3, "tier": "Multicenter cohort · N=425", "appraisal": "Cohort validation of an outcome measure; a large sample does not make this an RCT."},
-    "tka-stretch": {"title": "Manipulation under anaesthesia versus low stretch device after TKA (2013)", "pmid": "22864680", "url": "https://pubmed.ncbi.nlm.nih.gov/22864680/", "stars": 4, "tier": "RCT · N=64", "appraisal": "Randomized comparison with six-week follow-up; supports a monitored stretching trial, not universal equivalence."},
-    "vte": {"title": "APTA Management of Individuals at Risk for or Diagnosed With Venous Thromboembolism (2022)", "pmid": "35567347", "url": "https://pubmed.ncbi.nlm.nih.gov/35567347/", "stars": 5, "tier": "CPG", "appraisal": "Evidence-based guidance on VTE screening, referral, and safe mobility."},
-    "tka": {"title": "APTA Physical Therapist Management of Total Knee Arthroplasty (2020)", "pmid": "32542403", "url": "https://pubmed.ncbi.nlm.nih.gov/32542403/", "stars": 5, "tier": "CPG", "appraisal": "Guideline recommends standardized performance and patient-reported outcome assessment."}
+    "stroke": {
+      "title": "AHA/ASA Guidelines for Adult Stroke Rehabilitation and Recovery (2016)",
+      "pmid": "27145936",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27145936/",
+      "stars": 5,
+      "tier": "CPG",
+      "appraisal": "Guideline-level source; individual recommendations have different evidence certainty."
+    },
+    "afo-review": {
+      "title": "Efficacy of different techniques of AFO construction for hemiplegia patients (2019)",
+      "pmid": "31456974",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31456974/",
+      "stars": 5,
+      "tier": "Systematic review",
+      "appraisal": "Nine studies; mixed hemiplegia populations and device designs limit direct generalization."
+    },
+    "afo-trial": {
+      "title": "Effects of ankle-foot orthoses on mediolateral foot-placement ability during post-stroke gait (2015)",
+      "pmid": "24878846",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/24878846/",
+      "stars": 3,
+      "tier": "Randomized-order crossover trial",
+      "appraisal": "Within-person biomechanical trial; no verified large sample in the abstract. Supplementary evidence."
+    },
+    "cms": {
+      "title": "CMS Medicare Coverage Database · Outpatient Physical and Occupational Therapy Services",
+      "url": "https://www.cms.gov/medicare-coverage-database/view/article.aspx?articleId=56566",
+      "stars": null,
+      "tier": "Billing policy",
+      "appraisal": "Policy reference, not a research study. Apply current payer, jurisdiction, and documentation rules."
+    },
+    "pd": {
+      "title": "APTA Physical Therapist Management of Parkinson Disease (2022)",
+      "pmid": "34963139",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34963139/",
+      "stars": 5,
+      "tier": "CPG",
+      "appraisal": "Evidence-based guideline supporting individualized external cueing and gait training."
+    },
+    "oh": {
+      "title": "Consensus recommendations for neurogenic orthostatic hypotension (2017)",
+      "pmid": "28050656",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28050656/",
+      "stars": 1,
+      "tier": "Expert consensus",
+      "appraisal": "Expert recommendations informed by available evidence; not a systematic review or trial."
+    },
+    "mini-best": {
+      "title": "Mini-BESTest reproducibility in mild to moderate Parkinson disease (2014)",
+      "pmid": "25496796",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/25496796/",
+      "stars": 2,
+      "tier": "Measurement study · N=27",
+      "appraisal": "Observational test–retest study; measurement error is specific to this population and protocol."
+    },
+    "sci-autonomic": {
+      "title": "Evaluation and Management of Autonomic Dysreflexia and Other Autonomic Dysfunctions (2021)",
+      "pmid": "34270391",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34270391/",
+      "stars": 5,
+      "tier": "SCI clinical practice guideline",
+      "appraisal": "Guideline-level source; several immediate-care recommendations rely on expert consensus."
+    },
+    "scim": {
+      "title": "SCIM III reliability and validity in a multicenter international study (2007)",
+      "pmid": "17852230",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/17852230/",
+      "stars": 3,
+      "tier": "Multicenter cohort · N=425",
+      "appraisal": "Cohort validation of an outcome measure; a large sample does not make this an RCT."
+    },
+    "tka-stretch": {
+      "title": "Manipulation under anaesthesia versus low stretch device after TKA (2013)",
+      "pmid": "22864680",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/22864680/",
+      "stars": 4,
+      "tier": "RCT · N=64",
+      "appraisal": "Randomized comparison with six-week follow-up; supports a monitored stretching trial, not universal equivalence."
+    },
+    "vte": {
+      "title": "APTA Management of Individuals at Risk for or Diagnosed With Venous Thromboembolism (2022)",
+      "pmid": "35567347",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35567347/",
+      "stars": 5,
+      "tier": "CPG",
+      "appraisal": "Evidence-based guidance on VTE screening, referral, and safe mobility."
+    },
+    "tka": {
+      "title": "APTA Physical Therapist Management of Total Knee Arthroplasty (2020)",
+      "pmid": "32542403",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32542403/",
+      "stars": 5,
+      "tier": "CPG",
+      "appraisal": "Guideline recommends standardized performance and patient-reported outcome assessment."
+    },
+    "stroke2026": {
+      "title": "Richards et al. · AHA/ASA Adult Stroke Rehabilitation and Recovery (2026)",
+      "pmid": "42657476",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/42657476/",
+      "stars": 5,
+      "tier": "CPG",
+      "appraisal": "Guideline design rating; recommendation strength and patient applicability vary."
+    },
+    "locomotor": {
+      "title": "Hornby et al. · APTA Locomotor Clinical Practice Guideline (2020)",
+      "pmid": "31834165",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/31834165/",
+      "stars": 5,
+      "tier": "CPG",
+      "appraisal": "Ambulatory patients more than six months after injury; Ed is at twelve weeks, so apply with clinical judgment."
+    },
+    "aphasia": {
+      "title": "Brady et al. · Speech and language therapy for aphasia following stroke (2016)",
+      "pmid": "27245310",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27245310/",
+      "stars": 5,
+      "tier": "Cochrane systematic review",
+      "appraisal": "Supports speech-language therapy; treatment tolerance varies and no universal twenty-minute limit is established."
+    },
+    "baclofen-label": {
+      "title": "Baclofen tablets · Prescribing information",
+      "url": "https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=ec09736a-dd2b-0a3b-e053-2995a90a9542&type=display",
+      "stars": null,
+      "tier": "Drug labeling",
+      "appraisal": "Safety reference for sedation, weakness and gradual withdrawal; not a graded clinical trial."
+    }
   },
   "patients": [
     {
-      "id": "ed", "name": "Ed Vance", "demographics": "67M", "mrn": "482910", "diagnosis": "12wk Post-L MCA Stroke", "tag": "Current EHR Patient", "initials": "EV",
-      "snapshot": ["Baclofen: 5mg → 10mg TID on 10/06", "10MWT: 0.48 → 0.35 m/s · BBS: 42 → 38/56", "TUG: 16.2 → 21.4 sec · Two near-falls", "R ankle MAS 1+ · R elbow MAS 2 · FMA-UE 22/66", "R glenohumeral subluxation: one finger · GivMohr support prescribed", "BP 128/78 mmHg · HR 72 bpm"],
+      "id": "ed",
+      "name": "Ed Vance",
+      "demographics": "67M",
+      "mrn": "482910",
+      "diagnosis": "12wk Post-L MCA Stroke",
+      "tag": "Current EHR Patient",
+      "initials": "EV",
+      "snapshot": [
+        "Baclofen: 5mg → 10mg TID on 10/06",
+        "10MWT: 0.48 → 0.35 m/s · BBS: 42 → 38/56",
+        "TUG: 16.2 → 21.4 sec · Two near-falls",
+        "R ankle MAS 1+ · R elbow MAS 2 · FMA-UE 22/66",
+        "R glenohumeral subluxation: one finger · GivMohr support prescribed",
+        "BP 128/78 mmHg · HR 72 bpm",
+        "Brunnstrom R UE Stage 3 · Self-feeding goal",
+        "WAB-R AQ: 64.2 → 71.8 · Intact multi-step comprehension",
+        "Linguistic fatigue after 20 minutes · FOIS Level 7"
+      ],
       "questions": [
-        {"id": "ed-medication", "domain": "safety", "focus": "clinical", "title": "Medication timing and rehabilitation safety", "stem": "Seven days after Ed's baclofen increased from 5mg to 10mg TID, his gait speed fell by 0.13 m/s and Berg score fell four points. He reports fatigue and two near-falls. What is the PT's best next action?", "options": ["Independently return baclofen to 5mg TID and resume the prior session intensity.", "Document the temporal association, reassess safety and other causes, and promptly request a prescribing clinician medication review.", "Confirm that a new stroke caused the decline using the Berg score alone.", "Continue unmodified training because medication effects are outside rehabilitation practice."], "correct": 1, "rationale": "The decline warrants interdisciplinary review, not a causal diagnosis from timing alone. Oral antispasticity treatment can compromise alertness or strength. Adjust guarding and session demands, document the change, and contact the prescriber; PT should not independently change baclofen. New focal neurological symptoms require urgent assessment.", "sources": ["stroke"]},
-        {"id": "ed-afo", "domain": "biomechanics", "focus": "evidence", "title": "Ankle control versus proximal compensation", "stem": "Ed has absent right heel strike, swing-phase foot drop, and hip hiking/circumduction. Which AFO rationale best matches the evidence?", "options": ["An AFO reliably eliminates hip hiking and restores normal balance in every stroke survivor.", "Hip hiking means an AFO is contraindicated even when toe clearance is impaired.", "Prescribe the same rigid AFO for every patient because systematic reviews establish one superior design.", "Trial an individually fitted AFO for ankle alignment and clearance, then reassess proximal compensations and functional safety."], "correct": 3, "rationale": "The systematic review supports evaluating AFO design and gait effects, with population and device differences. The randomized-order crossover study found ankle correction without significant improvement in hip hiking, circumduction, or mediolateral placement. Use its 3-star findings as supplementary evidence; reassess Ed's gait with the selected device rather than promise global normalization.", "sources": ["afo-review", "afo-trial"]},
-        {"id": "ed-shoulder", "domain": "biomechanics", "focus": "clinical", "title": "Protect the shoulder during mobility", "stem": "Ed's FMA-UE is 22/66 and OT documents a one-finger right shoulder subluxation. Which approach best protects him during transfers and gait practice?", "options": ["Support the arm, check the prescribed GivMohr fit with OT, and avoid traction and overhead pulleys.", "Pull through the affected hand to help him rise quickly.", "Use overhead pulleys to stretch the shoulder aggressively before gait.", "Assume the improving FMA-UE score makes shoulder support unnecessary."], "correct": 0, "rationale": "The stroke guideline supports positioning and selected shoulder supports and advises against overhead pulleys. Coordinate the prescribed sling with OT and avoid pulling on the affected arm. A 5-star guideline does not mean every recommendation has high-certainty trial evidence or that a particular sling is superior.", "sources": ["stroke"]},
-        {"id": "ed-billing", "domain": "billing", "focus": "billing", "title": "Defend the skilled service actually delivered", "stem": "Ed completes separately documented overground stepping and dynamic weight-shifting with clinician cueing. Which documentation and coding approach best reflects the skilled services?", "options": ["Bill both codes for the full session regardless of the time spent on each activity.", "Record only 'tolerated exercise well' because the diagnosis establishes skilled need.", "Describe gait mechanics, assistance and response for 97116, and balance/motor-control work for 97112; record actual timed minutes without overlap.", "Add a standard justification paragraph and estimate minutes after the visit."], "correct": 2, "rationale": "Link the actual gait and neuromuscular interventions to functional deficits, skilled assistance, patient response, and separately recorded time. Do not duplicate minutes or invent services. Code selection alone never guarantees payment; current Medicare and local payer requirements still apply.", "sources": ["cms"]}
-      ]
+        {
+          "id": "ed-medication",
+          "domain": "safety",
+          "focus": "clinical",
+          "title": "Medication timing and rehabilitation safety",
+          "stem": "Seven days after Ed's baclofen increased from 5mg to 10mg TID, his gait speed fell by 0.13 m/s and Berg score fell four points. He reports fatigue and two near-falls. What is the PT's best next action?",
+          "options": [
+            "Independently return baclofen to 5mg TID and resume the prior session intensity.",
+            "Document the temporal association, reassess safety and other causes, and promptly request a prescribing clinician medication review.",
+            "Confirm that a new stroke caused the decline using the Berg score alone.",
+            "Continue unmodified training because medication effects are outside rehabilitation practice."
+          ],
+          "correct": 1,
+          "rationale": "The decline warrants interdisciplinary review, not a causal diagnosis from timing alone. Oral antispasticity treatment can compromise alertness or strength. Adjust guarding and session demands, document the change, and contact the prescriber; PT should not independently change baclofen. New focal neurological symptoms require urgent assessment.",
+          "sources": [
+            "stroke"
+          ]
+        },
+        {
+          "id": "ed-afo",
+          "domain": "biomechanics",
+          "focus": "evidence",
+          "title": "Ankle control versus proximal compensation",
+          "stem": "Ed has absent right heel strike, swing-phase foot drop, and hip hiking/circumduction. Which AFO rationale best matches the evidence?",
+          "options": [
+            "An AFO reliably eliminates hip hiking and restores normal balance in every stroke survivor.",
+            "Hip hiking means an AFO is contraindicated even when toe clearance is impaired.",
+            "Prescribe the same rigid AFO for every patient because systematic reviews establish one superior design.",
+            "Trial an individually fitted AFO for ankle alignment and clearance, then reassess proximal compensations and functional safety."
+          ],
+          "correct": 3,
+          "rationale": "The systematic review supports evaluating AFO design and gait effects, with population and device differences. The randomized-order crossover study found ankle correction without significant improvement in hip hiking, circumduction, or mediolateral placement. Use its 3-star findings as supplementary evidence; reassess Ed's gait with the selected device rather than promise global normalization.",
+          "sources": [
+            "afo-review",
+            "afo-trial"
+          ]
+        },
+        {
+          "id": "ed-shoulder",
+          "domain": "biomechanics",
+          "focus": "clinical",
+          "title": "Protect the shoulder during mobility",
+          "stem": "Ed's FMA-UE is 22/66 and OT documents a one-finger right shoulder subluxation. Which approach best protects him during transfers and gait practice?",
+          "options": [
+            "Support the arm, check the prescribed GivMohr fit with OT, and avoid traction and overhead pulleys.",
+            "Pull through the affected hand to help him rise quickly.",
+            "Use overhead pulleys to stretch the shoulder aggressively before gait.",
+            "Assume the improving FMA-UE score makes shoulder support unnecessary."
+          ],
+          "correct": 0,
+          "rationale": "The stroke guideline supports positioning and selected shoulder supports and advises against overhead pulleys. Coordinate the prescribed sling with OT and avoid pulling on the affected arm. A 5-star guideline does not mean every recommendation has high-certainty trial evidence or that a particular sling is superior.",
+          "sources": [
+            "stroke"
+          ]
+        },
+        {
+          "id": "ed-billing",
+          "domain": "billing",
+          "focus": "billing",
+          "title": "Defend the skilled service actually delivered",
+          "stem": "Ed completes separately documented overground stepping and dynamic weight-shifting with clinician cueing. Which documentation and coding approach best reflects the skilled services?",
+          "options": [
+            "Bill both codes for the full session regardless of the time spent on each activity.",
+            "Record only 'tolerated exercise well' because the diagnosis establishes skilled need.",
+            "Describe gait mechanics, assistance and response for 97116, and balance/motor-control work for 97112; record actual timed minutes without overlap.",
+            "Add a standard justification paragraph and estimate minutes after the visit."
+          ],
+          "correct": 2,
+          "rationale": "Link the actual gait and neuromuscular interventions to functional deficits, skilled assistance, patient response, and separately recorded time. Do not duplicate minutes or invent services. Code selection alone never guarantees payment; current Medicare and local payer requirements still apply.",
+          "sources": [
+            "cms"
+          ]
+        },
+        {
+          "id": "ed-locomotor",
+          "domain": "biomechanics",
+          "focus": "evidence",
+          "title": "Locomotor training intensity and applicability",
+          "stem": "At twelve weeks after stroke, Ed has gait slowing and near-falls after a baclofen increase. How should the PT apply the 2020 APTA locomotor guideline?",
+          "options": [
+            "Immediately prescribe maximal-intensity walking regardless of alertness or guarding needs.",
+            "Reassess safety and coordinate medication review, then individualize progressive task-specific walking with physiological monitoring and guarding.",
+            "Use passive stretching alone as the primary walking intervention.",
+            "Avoid all walking until six months after stroke."
+          ],
+          "correct": 1,
+          "rationale": "The guideline supports moderate- to high-intensity walking for ambulatory people more than six months after injury. Ed is subacute, so its evidence cannot be applied as an automatic intensity prescription. Screen tolerance and safety, address the current decline with the team, and progressively dose walking to his response.",
+          "sources": [
+            "locomotor",
+            "stroke2026"
+          ]
+        },
+        {
+          "id": "ed-fall-risk",
+          "domain": "outcomes",
+          "focus": "evidence",
+          "title": "Interpret gait speed and fall risk",
+          "stem": "Ed walks at 0.35 m/s, scores 38/56 on the Berg Balance Scale, and reports two near-falls. Which interpretation best informs today’s session?",
+          "options": [
+            "He is safe for unrestricted community ambulation.",
+            "His speed falls in the household ambulation category; combine the low balance score and near-fall history to plan guarding, foot-clearance support and reassessment.",
+            "The Berg score proves baclofen caused his decline.",
+            "Gait speed alone determines whether he can live independently."
+          ],
+          "correct": 1,
+          "rationale": "A gait speed below 0.4 m/s is commonly categorized as household ambulation. His balance impairment and actual near-falls warrant a multifactorial safety assessment. Neither a single cutoff nor the timing of a medication change establishes causation or independence.",
+          "sources": [
+            "stroke2026"
+          ]
+        }
+      ],
+      "specialty": "pt"
     },
     {
-      "id": "elena", "name": "Elena Rostova", "demographics": "71F", "mrn": "319044", "diagnosis": "Parkinson's H&Y Stage 3 · Freezing of Gait", "tag": "Neuro Outpatient", "initials": "ER",
-      "snapshot": ["Freezing at doorways and during turning · Two recent near-falls", "Carbidopa/levodopa prescribed · Fluctuating ON/OFF mobility", "Usual seated BP 126/76 mmHg · Orthostatic symptoms reported", "Mini-BESTest 17/28 initially, 18/28 at follow-up", "Goals: safe kitchen turns and independent household mobility"],
+      "id": "elena",
+      "name": "Elena Rostova",
+      "demographics": "71F",
+      "mrn": "319044",
+      "diagnosis": "Parkinson's H&Y Stage 3 · Freezing of Gait",
+      "tag": "Neuro Outpatient",
+      "initials": "ER",
+      "snapshot": [
+        "Freezing at doorways and during turning · Two recent near-falls",
+        "Carbidopa/levodopa prescribed · Fluctuating ON/OFF mobility",
+        "Usual seated BP 126/76 mmHg · Orthostatic symptoms reported",
+        "Mini-BESTest 17/28 initially, 18/28 at follow-up",
+        "Goals: safe kitchen turns and independent household mobility"
+      ],
       "questions": [
-        {"id": "elena-cueing", "domain": "biomechanics", "focus": "evidence", "title": "Choose a cue that can be tested", "stem": "Elena freezes at a doorway during an ON-period session. Which intervention is most consistent with the Parkinson disease PT guideline?", "options": ["Push her forward through the freeze to establish momentum.", "Add rapid cognitive dual tasks before establishing safe stepping.", "Trial a visual step target or rhythmic auditory cue with guarding and measure her response.", "Assume all cueing works equally well and omit reassessment."], "correct": 2, "rationale": "The 5-star APTA guideline supports external cueing for gait and freezing. Select a cue Elena can attend to, practice relevant transitions with guarding, and record its effect. Cue type and medication state matter; benefit should be demonstrated for this patient.", "sources": ["pd"]},
-        {"id": "elena-orthostasis", "domain": "safety", "focus": "clinical", "title": "A blood-pressure drop changes the session", "stem": "After five minutes supine, Elena's BP is 132/78 mmHg. Three minutes after standing it is 98/62, with lightheadedness. What should happen next?", "options": ["Continue standing exercise to overcome deconditioning.", "Stop upright activity, assist her to a safe supported position, reassess vitals, and arrange medical review of the symptomatic BP drop.", "Call this autonomic dysreflexia and keep her standing.", "Tell her to stop levodopa without consulting her prescriber."], "correct": 1, "rationale": "The symptomatic 34/16 mmHg fall meets the usual orthostatic BP criterion. Protect against falling and coordinate assessment of medications and other contributors. This consensus source guides safety but is rated 1 star for design; it does not establish the cause of Elena's hypotension.", "sources": ["oh"]},
-        {"id": "elena-outcomes", "domain": "outcomes", "focus": "evidence", "title": "Distinguish change from measurement noise", "stem": "Elena's Mini-BESTest changes from 17 to 18/28. Both visits used the same examiner and medication phase. What is the most defensible interpretation?", "options": ["A one-point gain proves a clinically meaningful reduction in falls.", "Any positive change meets a universal Parkinson disease MCID.", "Discard the measure because no balance test is useful in Parkinson disease.", "Report the observed change, consider measurement error, and reassess alongside functional goals and falls."], "correct": 3, "rationale": "In a 27-person H&Y 2–3 measurement study, test–retest smallest real difference was 3.4 points. A one-point change therefore does not by itself establish change beyond error in a similar setting. That error threshold is not an MCID and should not be generalized to every protocol.", "sources": ["mini-best"]}
-      ]
+        {
+          "id": "elena-cueing",
+          "domain": "biomechanics",
+          "focus": "evidence",
+          "title": "Choose a cue that can be tested",
+          "stem": "Elena freezes at a doorway during an ON-period session. Which intervention is most consistent with the Parkinson disease PT guideline?",
+          "options": [
+            "Push her forward through the freeze to establish momentum.",
+            "Add rapid cognitive dual tasks before establishing safe stepping.",
+            "Trial a visual step target or rhythmic auditory cue with guarding and measure her response.",
+            "Assume all cueing works equally well and omit reassessment."
+          ],
+          "correct": 2,
+          "rationale": "The 5-star APTA guideline supports external cueing for gait and freezing. Select a cue Elena can attend to, practice relevant transitions with guarding, and record its effect. Cue type and medication state matter; benefit should be demonstrated for this patient.",
+          "sources": [
+            "pd"
+          ]
+        },
+        {
+          "id": "elena-orthostasis",
+          "domain": "safety",
+          "focus": "clinical",
+          "title": "A blood-pressure drop changes the session",
+          "stem": "After five minutes supine, Elena's BP is 132/78 mmHg. Three minutes after standing it is 98/62, with lightheadedness. What should happen next?",
+          "options": [
+            "Continue standing exercise to overcome deconditioning.",
+            "Stop upright activity, assist her to a safe supported position, reassess vitals, and arrange medical review of the symptomatic BP drop.",
+            "Call this autonomic dysreflexia and keep her standing.",
+            "Tell her to stop levodopa without consulting her prescriber."
+          ],
+          "correct": 1,
+          "rationale": "The symptomatic 34/16 mmHg fall meets the usual orthostatic BP criterion. Protect against falling and coordinate assessment of medications and other contributors. This consensus source guides safety but is rated 1 star for design; it does not establish the cause of Elena's hypotension.",
+          "sources": [
+            "oh"
+          ]
+        },
+        {
+          "id": "elena-outcomes",
+          "domain": "outcomes",
+          "focus": "evidence",
+          "title": "Distinguish change from measurement noise",
+          "stem": "Elena's Mini-BESTest changes from 17 to 18/28. Both visits used the same examiner and medication phase. What is the most defensible interpretation?",
+          "options": [
+            "A one-point gain proves a clinically meaningful reduction in falls.",
+            "Any positive change meets a universal Parkinson disease MCID.",
+            "Discard the measure because no balance test is useful in Parkinson disease.",
+            "Report the observed change, consider measurement error, and reassess alongside functional goals and falls."
+          ],
+          "correct": 3,
+          "rationale": "In a 27-person H&Y 2–3 measurement study, test–retest smallest real difference was 3.4 points. A one-point change therefore does not by itself establish change beyond error in a similar setting. That error threshold is not an MCID and should not be generalized to every protocol.",
+          "sources": [
+            "mini-best"
+          ]
+        }
+      ],
+      "specialty": "pt"
     },
     {
-      "id": "marcus", "name": "Marcus Thorne", "demographics": "44M", "mrn": "502819", "diagnosis": "C6 Incomplete Tetraplegia (ASIA C)", "tag": "Spinal Cord Rehab", "initials": "MT",
-      "snapshot": ["Baseline seated BP 104/66 mmHg · Impaired autonomic control", "Neurogenic bladder · Indwelling catheter during this vignette", "Baclofen on medication list · Scheduled bowel program", "Assisted transfers · Limited hand function · Wheelchair mobility", "Goals: improve self-care, transfers, and bladder-management independence"],
+      "id": "marcus",
+      "name": "Marcus Thorne",
+      "demographics": "44M",
+      "mrn": "502819",
+      "diagnosis": "C6 Incomplete Tetraplegia (ASIA C)",
+      "tag": "Spinal Cord Rehab",
+      "initials": "MT",
+      "snapshot": [
+        "Baseline seated BP 104/66 mmHg · Impaired autonomic control",
+        "Neurogenic bladder · Indwelling catheter during this vignette",
+        "Baclofen on medication list · Scheduled bowel program",
+        "Assisted transfers · Limited hand function · Wheelchair mobility",
+        "Goals: improve self-care, transfers, and bladder-management independence"
+      ],
       "questions": [
-        {"id": "marcus-ad", "domain": "safety", "focus": "clinical", "title": "Recognize an autonomic emergency", "stem": "During therapy Marcus develops a pounding headache, facial sweating, and BP 168/96 mmHg compared with his usual 104/66. His catheter tubing is kinked. What is the immediate priority?", "options": ["Stop therapy, sit him upright, activate urgent medical help, monitor BP closely, loosen restrictive items, and address the catheter obstruction within training and protocol.", "Lie him flat and continue leg exercise to raise his blood pressure.", "Wait until the next scheduled visit because systolic BP is below 180.", "Give an unprescribed antihypertensive and send him home."], "correct": 0, "rationale": "C6 injury plus acute hypertension and these symptoms suggests autonomic dysreflexia. Treat it as an emergency: upright positioning, frequent BP checks, urgent assistance, and prompt trigger assessment, often starting with the urinary system. The rise from his baseline matters even below 180 mmHg.", "sources": ["sci-autonomic"]},
-        {"id": "marcus-oh", "domain": "safety", "focus": "clinical", "title": "Different BP directions require different responses", "stem": "At a later visit Marcus becomes dizzy during head-up positioning; BP falls from 106/68 to 80/52 mmHg. Which action best fits this episode?", "options": ["Use the same upright positioning response as for hypertension.", "Ignore the BP because dizziness is expected in rehabilitation.", "Stop the challenge, recline safely and reassess, then coordinate a gradual monitored upright-tolerance plan.", "Increase baclofen independently before trying again."], "correct": 2, "rationale": "This episode is consistent with orthostatic hypotension, not hypertensive dysreflexia. Use BP direction and symptoms to guide immediate positioning and medical coordination. After stabilization, the team can individualize gradual position changes and nonpharmacological supports.", "sources": ["sci-autonomic"]},
-        {"id": "marcus-scim", "domain": "outcomes", "focus": "evidence", "title": "Measure independence beyond walking speed", "stem": "Marcus is improving transfers and self-care but cannot yet complete a reliable walking-speed test. Which outcome strategy best captures his multidisciplinary progress?", "options": ["Use walking speed as the only outcome and score every non-walking task as zero.", "Track SCIM III domains and meaningful task assistance over time, alongside neurological assessment.", "Treat the ASIA grade alone as a measure of independence in every daily task.", "Replace measured outcomes with a generic 'doing better' statement."], "correct": 1, "rationale": "SCIM III addresses SCI-related self-care, respiration/sphincter management, and mobility. Its 425-person multicenter validation supports functional tracking. This 3-star cohort evidence concerns measurement validity; it does not prove a particular treatment works or replace neurological classification.", "sources": ["scim"]}
-      ]
+        {
+          "id": "marcus-ad",
+          "domain": "safety",
+          "focus": "clinical",
+          "title": "Recognize an autonomic emergency",
+          "stem": "During therapy Marcus develops a pounding headache, facial sweating, and BP 168/96 mmHg compared with his usual 104/66. His catheter tubing is kinked. What is the immediate priority?",
+          "options": [
+            "Stop therapy, sit him upright, activate urgent medical help, monitor BP closely, loosen restrictive items, and address the catheter obstruction within training and protocol.",
+            "Lie him flat and continue leg exercise to raise his blood pressure.",
+            "Wait until the next scheduled visit because systolic BP is below 180.",
+            "Give an unprescribed antihypertensive and send him home."
+          ],
+          "correct": 0,
+          "rationale": "C6 injury plus acute hypertension and these symptoms suggests autonomic dysreflexia. Treat it as an emergency: upright positioning, frequent BP checks, urgent assistance, and prompt trigger assessment, often starting with the urinary system. The rise from his baseline matters even below 180 mmHg.",
+          "sources": [
+            "sci-autonomic"
+          ]
+        },
+        {
+          "id": "marcus-oh",
+          "domain": "safety",
+          "focus": "clinical",
+          "title": "Different BP directions require different responses",
+          "stem": "At a later visit Marcus becomes dizzy during head-up positioning; BP falls from 106/68 to 80/52 mmHg. Which action best fits this episode?",
+          "options": [
+            "Use the same upright positioning response as for hypertension.",
+            "Ignore the BP because dizziness is expected in rehabilitation.",
+            "Stop the challenge, recline safely and reassess, then coordinate a gradual monitored upright-tolerance plan.",
+            "Increase baclofen independently before trying again."
+          ],
+          "correct": 2,
+          "rationale": "This episode is consistent with orthostatic hypotension, not hypertensive dysreflexia. Use BP direction and symptoms to guide immediate positioning and medical coordination. After stabilization, the team can individualize gradual position changes and nonpharmacological supports.",
+          "sources": [
+            "sci-autonomic"
+          ]
+        },
+        {
+          "id": "marcus-scim",
+          "domain": "outcomes",
+          "focus": "evidence",
+          "title": "Measure independence beyond walking speed",
+          "stem": "Marcus is improving transfers and self-care but cannot yet complete a reliable walking-speed test. Which outcome strategy best captures his multidisciplinary progress?",
+          "options": [
+            "Use walking speed as the only outcome and score every non-walking task as zero.",
+            "Track SCIM III domains and meaningful task assistance over time, alongside neurological assessment.",
+            "Treat the ASIA grade alone as a measure of independence in every daily task.",
+            "Replace measured outcomes with a generic 'doing better' statement."
+          ],
+          "correct": 1,
+          "rationale": "SCIM III addresses SCI-related self-care, respiration/sphincter management, and mobility. Its 425-person multicenter validation supports functional tracking. This 3-star cohort evidence concerns measurement validity; it does not prove a particular treatment works or replace neurological classification.",
+          "sources": [
+            "scim"
+          ]
+        }
+      ],
+      "specialty": "pt"
     },
     {
-      "id": "sarah", "name": "Sarah Jenkins", "demographics": "58F", "mrn": "294105", "diagnosis": "R Total Knee Arthroplasty · Arthrofibrosis", "tag": "Ortho Rehab", "initials": "SJ",
-      "snapshot": ["Six weeks after right TKA · Flexion plateau near 80° · Extension deficit 10°", "Incision closed · Persistent stiffness limiting stairs and chair rise", "Analgesics per surgeon · Postoperative prophylaxis status to verify", "BP 124/76 mmHg · HR 78 bpm at routine visit", "Goal: restore useful knee motion and independent community tasks"],
+      "id": "sarah",
+      "name": "Sarah Jenkins",
+      "demographics": "58F",
+      "mrn": "294105",
+      "diagnosis": "R Total Knee Arthroplasty · Arthrofibrosis",
+      "tag": "Ortho Rehab",
+      "initials": "SJ",
+      "snapshot": [
+        "Six weeks after right TKA · Flexion plateau near 80° · Extension deficit 10°",
+        "Incision closed · Persistent stiffness limiting stairs and chair rise",
+        "Analgesics per surgeon · Postoperative prophylaxis status to verify",
+        "BP 124/76 mmHg · HR 78 bpm at routine visit",
+        "Goal: restore useful knee motion and independent community tasks"
+      ],
       "questions": [
-        {"id": "sarah-stretch", "domain": "biomechanics", "focus": "evidence", "title": "Progress a stiff knee without forcing it", "stem": "Sarah's motion has plateaued after TKA. No new red flags are present. Which plan best uses the available stretching evidence?", "options": ["Force painful end range until swelling increases.", "Promise that stretching will always replace manipulation under anaesthesia.", "Stop all movement until stiffness resolves spontaneously.", "Coordinate with her surgeon and trial tolerable low-load sustained stretching, monitoring motion, pain, swelling, and function."], "correct": 3, "rationale": "A 64-person randomized trial compared a low-load stretch device with manipulation and found improvement without a between-group ROM advantage at six weeks. This 4-star trial supports a monitored conservative option. It does not justify aggressive pain-provoking loading or delaying a needed surgical review.", "sources": ["tka-stretch"]},
-        {"id": "sarah-vte", "domain": "safety", "focus": "clinical", "title": "A new calf finding is not routine stiffness", "stem": "Sarah returns with new unilateral calf swelling, warmth, and tenderness. She has no chest pain or breathlessness. What is the safest next step?", "options": ["Pause the session, assess VTE likelihood within protocol, and arrange prompt medical evaluation; new cardiopulmonary symptoms require emergency escalation.", "Massage the calf deeply before stretching the knee.", "Rule out DVT with a negative Homan sign and continue therapy.", "Assume postoperative swelling is always benign at six weeks."], "correct": 0, "rationale": "New unilateral symptoms after surgery warrant structured VTE screening and referral rather than a bedside maneuver to exclude clot. Do not continue routine treatment while this concern is unresolved. Chest pain, dyspnea, syncope, or instability would change the urgency to emergency care.", "sources": ["vte"]},
-        {"id": "sarah-outcomes", "domain": "outcomes", "focus": "evidence", "title": "Track the outcome that matters to the patient", "stem": "After medical clearance, Sarah resumes rehabilitation. Which follow-up set best distinguishes knee motion from real functional recovery?", "options": ["Measure flexion alone because daily function always changes proportionally.", "Record only treatment minutes as evidence of recovery.", "Repeat knee ROM plus standardized functional testing such as TUG and a patient-reported measure such as KOOS JR under comparable conditions.", "Apply one universal MCID to every test and postoperative time point."], "correct": 2, "rationale": "The TKA guideline recommends standardized performance and patient-reported assessment. Pair these with motion and task goals so a flexion gain is not mistaken for complete functional recovery. Interpret meaningful change using the specific instrument, population, and follow-up interval.", "sources": ["tka"]}
-      ]
+        {
+          "id": "sarah-stretch",
+          "domain": "biomechanics",
+          "focus": "evidence",
+          "title": "Progress a stiff knee without forcing it",
+          "stem": "Sarah's motion has plateaued after TKA. No new red flags are present. Which plan best uses the available stretching evidence?",
+          "options": [
+            "Force painful end range until swelling increases.",
+            "Promise that stretching will always replace manipulation under anaesthesia.",
+            "Stop all movement until stiffness resolves spontaneously.",
+            "Coordinate with her surgeon and trial tolerable low-load sustained stretching, monitoring motion, pain, swelling, and function."
+          ],
+          "correct": 3,
+          "rationale": "A 64-person randomized trial compared a low-load stretch device with manipulation and found improvement without a between-group ROM advantage at six weeks. This 4-star trial supports a monitored conservative option. It does not justify aggressive pain-provoking loading or delaying a needed surgical review.",
+          "sources": [
+            "tka-stretch"
+          ]
+        },
+        {
+          "id": "sarah-vte",
+          "domain": "safety",
+          "focus": "clinical",
+          "title": "A new calf finding is not routine stiffness",
+          "stem": "Sarah returns with new unilateral calf swelling, warmth, and tenderness. She has no chest pain or breathlessness. What is the safest next step?",
+          "options": [
+            "Pause the session, assess VTE likelihood within protocol, and arrange prompt medical evaluation; new cardiopulmonary symptoms require emergency escalation.",
+            "Massage the calf deeply before stretching the knee.",
+            "Rule out DVT with a negative Homan sign and continue therapy.",
+            "Assume postoperative swelling is always benign at six weeks."
+          ],
+          "correct": 0,
+          "rationale": "New unilateral symptoms after surgery warrant structured VTE screening and referral rather than a bedside maneuver to exclude clot. Do not continue routine treatment while this concern is unresolved. Chest pain, dyspnea, syncope, or instability would change the urgency to emergency care.",
+          "sources": [
+            "vte"
+          ]
+        },
+        {
+          "id": "sarah-outcomes",
+          "domain": "outcomes",
+          "focus": "evidence",
+          "title": "Track the outcome that matters to the patient",
+          "stem": "After medical clearance, Sarah resumes rehabilitation. Which follow-up set best distinguishes knee motion from real functional recovery?",
+          "options": [
+            "Measure flexion alone because daily function always changes proportionally.",
+            "Record only treatment minutes as evidence of recovery.",
+            "Repeat knee ROM plus standardized functional testing such as TUG and a patient-reported measure such as KOOS JR under comparable conditions.",
+            "Apply one universal MCID to every test and postoperative time point."
+          ],
+          "correct": 2,
+          "rationale": "The TKA guideline recommends standardized performance and patient-reported assessment. Pair these with motion and task goals so a flexion gain is not mistaken for complete functional recovery. Interpret meaningful change using the specific instrument, population, and follow-up interval.",
+          "sources": [
+            "tka"
+          ]
+        }
+      ],
+      "specialty": "pt"
+    },
+    {
+      "id": "ed-md",
+      "name": "Ed Vance",
+      "demographics": "67M",
+      "mrn": "482910",
+      "diagnosis": "12wk Post-L MCA Stroke",
+      "tag": "Current EHR Patient",
+      "initials": "EV",
+      "snapshot": [
+        "Baclofen: 5mg → 10mg TID on 10/06",
+        "10MWT: 0.48 → 0.35 m/s · BBS: 42 → 38/56",
+        "TUG: 16.2 → 21.4 sec · Two near-falls",
+        "R ankle MAS 1+ · R elbow MAS 2 · FMA-UE 22/66",
+        "R glenohumeral subluxation: one finger · GivMohr support prescribed",
+        "BP 128/78 mmHg · HR 72 bpm",
+        "Brunnstrom R UE Stage 3 · Self-feeding goal",
+        "WAB-R AQ: 64.2 → 71.8 · Intact multi-step comprehension",
+        "Linguistic fatigue after 20 minutes · FOIS Level 7"
+      ],
+      "questions": [
+        {
+          "id": "ed-md-spasticity",
+          "domain": "md-spasticity",
+          "focus": "clinical",
+          "title": "Pharmacology & Spasticity Management",
+          "stem": "Ed is 67, twelve weeks post-left MCA stroke. One week after baclofen increased from 5mg to 10mg TID on 10/06 for right elbow MAS Grade 2 and plantarflexor Grade 1+ spasticity, gait speed fell from 0.48 to 0.35 m/s with two near-falls and fatigue. After assessment excludes new focal neurological deficits or another acute cause, which management plan best fits stroke rehabilitation guidance?",
+          "options": [
+            "Increase baclofen to 15mg TID to further suppress ankle clonus.",
+            "Initiate a prescriber-supervised gradual baclofen reduction and evaluate targeted botulinum toxin A for function-limiting focal spasticity plus an AFO for foot drop.",
+            "Abruptly stop baclofen and switch to tizanidine.",
+            "Require emergency repeat brain MRI before any medication review despite no new neurological signs."
+          ],
+          "correct": 1,
+          "rationale": "Reassess the balance between tone reduction and functional safety. Baclofen can cause sedation and weakness; if reducing it, taper under prescriber supervision to avoid withdrawal. Consider focal botulinum toxin and orthotic assessment based on goals and examination. The temporal association is not proof of drug causation; new focal deficits require urgent evaluation.",
+          "sources": [
+            "stroke2026",
+            "stroke",
+            "baclofen-label"
+          ]
+        }
+      ],
+      "specialty": "md"
+    },
+    {
+      "id": "ed-ot",
+      "name": "Ed Vance",
+      "demographics": "67M",
+      "mrn": "482910",
+      "diagnosis": "12wk Post-L MCA Stroke",
+      "tag": "Current EHR Patient",
+      "initials": "EV",
+      "snapshot": [
+        "Baclofen: 5mg → 10mg TID on 10/06",
+        "10MWT: 0.48 → 0.35 m/s · BBS: 42 → 38/56",
+        "TUG: 16.2 → 21.4 sec · Two near-falls",
+        "R ankle MAS 1+ · R elbow MAS 2 · FMA-UE 22/66",
+        "R glenohumeral subluxation: one finger · GivMohr support prescribed",
+        "BP 128/78 mmHg · HR 72 bpm",
+        "Brunnstrom R UE Stage 3 · Self-feeding goal",
+        "WAB-R AQ: 64.2 → 71.8 · Intact multi-step comprehension",
+        "Linguistic fatigue after 20 minutes · FOIS Level 7"
+      ],
+      "questions": [
+        {
+          "id": "ed-ot-shoulder",
+          "domain": "ot-motor",
+          "focus": "clinical",
+          "title": "Upper Extremity Recovery & Hemiplegic Shoulder Protection",
+          "stem": "Ed has FMA-UE 22/66 (up from 18/66), Brunnstrom Stage 3 right UE flexor synergy, and approximately one finger of inferior shoulder subluxation. Which approach best supports independent self-feeding while protecting joint integrity?",
+          "options": [
+            "Use overhead pulleys to rapidly increase passive shoulder flexion.",
+            "Use repetitive task-specific self-feeding practice with adaptive utensils, individualized arm support during upright activity, and assess suitability for FES/NMES to shoulder stabilizers such as supraspinatus and posterior deltoid.",
+            "Immobilize the right arm in a sling continuously for twenty-four hours a day.",
+            "Use aggressive traction stretching through the affected arm."
+          ],
+          "correct": 1,
+          "rationale": "Pair meaningful task practice and adaptive utensils with safe positioning and individualized support, including the prescribed GivMohr during upright mobility when appropriate. Avoid traction and overhead pulleys. Selected patients may benefit from shoulder electrical stimulation. FMA-UE improvement supports continued practice but does not remove subluxation precautions or prove any single treatment caused recovery.",
+          "sources": [
+            "stroke2026",
+            "stroke"
+          ]
+        }
+      ],
+      "specialty": "ot"
+    },
+    {
+      "id": "ed-slp",
+      "name": "Ed Vance",
+      "demographics": "67M",
+      "mrn": "482910",
+      "diagnosis": "12wk Post-L MCA Stroke",
+      "tag": "Current EHR Patient",
+      "initials": "EV",
+      "snapshot": [
+        "Baclofen: 5mg → 10mg TID on 10/06",
+        "10MWT: 0.48 → 0.35 m/s · BBS: 42 → 38/56",
+        "TUG: 16.2 → 21.4 sec · Two near-falls",
+        "R ankle MAS 1+ · R elbow MAS 2 · FMA-UE 22/66",
+        "R glenohumeral subluxation: one finger · GivMohr support prescribed",
+        "BP 128/78 mmHg · HR 72 bpm",
+        "Brunnstrom R UE Stage 3 · Self-feeding goal",
+        "WAB-R AQ: 64.2 → 71.8 · Intact multi-step comprehension",
+        "Linguistic fatigue after 20 minutes · FOIS Level 7"
+      ],
+      "questions": [
+        {
+          "id": "ed-slp-pacing",
+          "domain": "slp-language",
+          "focus": "clinical",
+          "title": "Aphasia Rehabilitation & Cognitive Pacing",
+          "stem": "Ed’s WAB-R AQ improved from 64.2 to 71.8. He has expressive aphasia, intact multi-step comprehension, FOIS Level 7 intake, and marked linguistic fatigue after twenty minutes. Which treatment structure best fits his presentation?",
+          "options": [
+            "Use unstructured sixty-minute conversational drills without breaks.",
+            "Use personally meaningful semantic feature analysis and script practice in focused blocks shorter than twenty minutes, with planned rest and response monitoring.",
+            "Downgrade to nectar-thick liquids solely because of word-finding pauses.",
+            "Replace all spoken-language practice with communication boards alone."
+          ],
+          "correct": 1,
+          "rationale": "Speech-language therapy supports functional communication after stroke. Select meaningful word-retrieval and script tasks, adapting practice and rest to Ed’s observed fatigue. The twenty-minute limit is his current tolerance, not a universal guideline dose or evidence of maladaptive error encoding. Aphasia alone does not justify diet restriction; use swallowing findings and reassess when indicated.",
+          "sources": [
+            "stroke2026",
+            "aphasia"
+          ]
+        }
+      ],
+      "specialty": "slp"
+    }
+  ],
+  "specialties": [
+    {
+      "id": "md",
+      "label": "MD · Neurology / PM&R"
+    },
+    {
+      "id": "pt",
+      "label": "PT · Physical Therapy"
+    },
+    {
+      "id": "ot",
+      "label": "OT · Occupational Therapy"
+    },
+    {
+      "id": "slp",
+      "label": "SLP · Speech-Language Pathology"
     }
   ]
 }

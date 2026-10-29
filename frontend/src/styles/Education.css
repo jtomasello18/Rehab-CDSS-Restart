@@ -128,3 +128,9 @@
 @media (max-width: 480px) { .edu-header { padding: 18px; gap: 10px; } .edu-logo { width: 42px; height: 42px; } .edu-header > div { flex: 1; min-width: 0; } .edu-header .edu-eyebrow { display: none; } .edu-header p { font-size: 12px; } .edu-dashboard { gap: 9px; } .edu-stat { padding: 13px; } .edu-stat-value { font-size: 29px; } .edu-stat-value small { font-size: 13px; } .edu-domain-stat { grid-column: 1 / -1; } .edu-credit-stat { grid-column: 1 / -1; } .edu-roster { padding: 12px; gap: 8px; } .edu-patient { padding: 10px; } .edu-patient-top { gap: 5px; } .edu-initials { width: 25px; height: 27px; } .edu-patient-top strong { font-size: 12px; } .edu-patient-top small { font-size: 9px; } .edu-patient-count { flex-direction: column; gap: 2px; } .edu-quiz-inner { padding: 16px; } .edu-filters { padding: 13px; } .edu-snapshot > div { grid-template-columns: minmax(0, 1fr); } .edu-question-heading h3 { font-size: 19px; } .edu-question-heading p { font-size: 14px; } .edu-option { padding: 12px 10px; gap: 9px; } .edu-submit-row > .edu-primary { width: 100%; } .edu-question-nav { gap: 8px; } .edu-question-nav button { padding: 9px; font-size: 10px !important; } .edu-rationale { padding: 13px; } }
 @media (max-width: 480px) { .edu-header { display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: start; } }
 @media (prefers-reduced-motion: reduce) { .aria-education * { transition: none !important; } }
+
+.edu-header { flex-wrap: wrap; }
+.edu-specialty { display: flex; flex-direction: column; gap: 6px; margin-left: auto; max-width: 100%; }
+.edu-specialty select { min-height: 42px; max-width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; color: #145b6e; font: inherit; font-weight: 600; }
+.edu-specialty select:focus-visible { outline: 2px solid #145b6e; outline-offset: 2px; }
+@media (max-width: 640px) { .edu-specialty { width: 100%; margin-left: 0; } }

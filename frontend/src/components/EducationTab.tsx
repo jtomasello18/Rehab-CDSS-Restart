@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Streamlit } from 'streamlit-component-lib';
 import { ArrowLeft, ArrowRight, BookOpen, Check, ChevronDown, ExternalLink, RotateCcw, ShieldCheck, Target, X } from 'lucide-react';
 import ariaLogo from '../assets/aria-logo.svg';
-import { patients, sources, normalizeProgress, overallStats, patientStats, submitAnswer, resetPatient } from '../utils/educationProgress';
+import { patientsForSpecialty, specialties, normalizeSpecialty, sources, normalizeProgress, overallStats, patientStats, submitAnswer, resetPatient } from '../utils/educationProgress';
 import type { Answer, Confidence, Patient, Progress, Question } from '../utils/educationProgress';
 import '../styles/Education.css';
 
@@ -12,7 +12,7 @@ const filters = [
   { id: 'evidence', label: 'Evidence & CPG Appraisal' },
   { id: 'billing', label: 'Medicare Part B & Billing' },
 ];
-type Args = { education_progress?: unknown; education_patient?: string };
+type Args = { education_progress?: unknown; education_patient?: string; education_specialty?: string };
 
 function Meter({ value, label }: { value: number; label: string }) {
   return <div className="edu-meter" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={value}>
@@ -25,7 +25,7 @@ function EvidenceSource({ id }: { id: string }) {
   if (!source) return null;
   return <a className="edu-source" href={source.url} target="_blank" rel="noopener noreferrer">
     <div className="edu-source-meta">
-      {'pmid' in source ? <strong>PMID: {source.pmid}</strong> : <strong>CMS policy</strong>}
+      {'pmid' in source ? <strong>PMID: {source.pmid}</strong> : <strong>{source.tier}</strong>}
       {source.stars !== null && <span aria-label={`${source.stars} of 5 ARIA design stars`}>
         <span className="edu-stars">{'★'.repeat(source.stars)}</span><span className="edu-empty-stars">{'☆'.repeat(5 - source.stars)}</span> <b>{source.stars}/5</b>
       </span>}
@@ -96,7 +96,9 @@ export default function EducationTab({ args = {} }: { args?: Args }) {
   // mounted session local updates remain immediate while the host acknowledges them.
   const [progress, setProgress] = useState(() => normalizeProgress(args.education_progress));
   const progressRef = useRef(progress);
-  const [patientId, setPatientId] = useState(() => patients.some(p => p.id === args.education_patient) ? args.education_patient! : 'ed');
+  const [specialty, setSpecialty] = useState(() => normalizeSpecialty(args.education_specialty));
+  const patients = patientsForSpecialty(specialty);
+  const [patientId, setPatientId] = useState(() => patients.some(p => p.id === args.education_patient) ? args.education_patient! : patients[0].id);
   const [filter, setFilter] = useState('all');
   const [questionIndex, setQuestionIndex] = useState(0);
   const [notice, setNotice] = useState('');
@@ -104,17 +106,24 @@ export default function EducationTab({ args = {} }: { args?: Args }) {
   const patient = patients.find(p => p.id === patientId)!;
   const questions = patient.questions.filter(q => filter === 'all' || q.focus === filter);
   const question = questions[questionIndex];
-  const overall = overallStats(progress);
+  const overall = overallStats(progress, specialty);
   const mastery = patientStats(progress, patient);
 
-  function persist(next: Progress, selectedPatient = patientId) {
+  function persist(next: Progress, selectedPatient = patientId, selectedSpecialty = specialty) {
     progressRef.current = next;
     setProgress(next);
     try {
       Streamlit.setComponentValue({ type: 'education_progress', requestId: crypto.randomUUID(),
-        progress: next, patientId: selectedPatient });
+        progress: next, patientId: selectedPatient, specialty: selectedSpecialty });
       setSyncError(false);
     } catch { setSyncError(true); }
+  }
+  function selectSpecialty(value: string) {
+    const nextSpecialty = normalizeSpecialty(value);
+    const nextPatient = patientsForSpecialty(nextSpecialty)[0].id;
+    setSpecialty(nextSpecialty); setPatientId(nextPatient);
+    setQuestionIndex(0); setFilter('all'); setNotice('');
+    persist(progressRef.current, nextPatient, nextSpecialty);
   }
   function selectPatient(id: string) {
     setPatientId(id); setQuestionIndex(0); setFilter('all'); setNotice('');
@@ -133,9 +142,14 @@ export default function EducationTab({ args = {} }: { args?: Args }) {
       <div><span className="edu-eyebrow">Learn from the clinical encounter</span>
         <h1>ARIA Education <span>· Point-of-Care Clinical Mastery & CEU/CME</span></h1>
       </div>
+      <label className="edu-specialty"><span className="edu-eyebrow">Clinical specialty</span>
+        <select aria-label="Education specialty" value={specialty} onChange={event => selectSpecialty(event.target.value)}>
+          {specialties.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+        </select>
+      </label>
     </header>
     <section className="edu-dashboard" aria-label="Provider performance dashboard">
-      <article className="edu-stat"><span className="edu-stat-label">Overall Provider Accuracy</span>
+      <article className="edu-stat"><span className="edu-stat-label">Specialty Accuracy</span>
         <strong className="edu-stat-value" data-testid="overall-accuracy">{overall.accuracy}<small>%</small></strong>
         <span>{overall.correct}/{overall.answered} correct <span className="edu-muted">· First answers</span></span>
         <Meter value={overall.accuracy} label="Overall accuracy" /><small className="edu-muted">{overall.answered ? 'Each answer counts once.' : 'Answer a question to begin.'}</small>
@@ -172,7 +186,7 @@ export default function EducationTab({ args = {} }: { args?: Args }) {
       </aside>
       <section className="edu-quiz" aria-label={`${patient.name} clinical quiz`}>
         <div className="edu-filters" role="group" aria-label="Question focus">
-          {filters.map(item => <button type="button" key={item.id} aria-pressed={filter === item.id} onClick={() => { setFilter(item.id); setQuestionIndex(0); setNotice(''); }}>{item.label}</button>)}
+          {filters.filter(item => item.id === 'all' || patient.questions.some(q => q.focus === item.id)).map(item => <button type="button" key={item.id} aria-pressed={filter === item.id} onClick={() => { setFilter(item.id); setQuestionIndex(0); setNotice(''); }}>{item.label}</button>)}
         </div>
         <div className="edu-quiz-inner">
           <div className="edu-quiz-toolbar"><span className="edu-eyebrow">{question ? `Question ${questionIndex + 1} of ${questions.length}` : 'No questions in this focus'}</span>
@@ -187,7 +201,7 @@ export default function EducationTab({ args = {} }: { args?: Args }) {
           {syncError && <p className="edu-sync-error" role="alert">Your progress is visible here but could not be sent to the app. <button type="button" onClick={() => persist(progressRef.current)}>Retry saving</button></p>}
           {question ? <QuestionCard key={`${question.id}-${Boolean(progress.answers[patientId]?.[question.id])}`} patient={patient} question={question}
             answer={progress.answers[patientId]?.[question.id]} onSubmit={answerQuestion} />
-            : <div className="edu-empty"><BookOpen size={28} aria-hidden="true" /><h3>No billing question in this case</h3><p>Choose another focus or open Ed Vance's billing module.</p><button type="button" className="edu-secondary" onClick={() => { setFilter('all'); setQuestionIndex(0); }}>Show All Case Questions</button></div>}
+            : <div className="edu-empty"><BookOpen size={28} aria-hidden="true" /><h3>No questions in this focus</h3><p>Choose another focus for this specialty.</p><button type="button" className="edu-secondary" onClick={() => { setFilter('all'); setQuestionIndex(0); }}>Show All Case Questions</button></div>}
           {question && <nav className="edu-question-nav" aria-label="Quiz navigation">
             <button type="button" className="edu-secondary" disabled={questionIndex === 0} onClick={() => { setQuestionIndex(i => i - 1); setNotice(''); }}><ArrowLeft size={16} aria-hidden="true" />Previous Question</button>
             <span>{mastery.complete ? 'Case complete · Review any answer' : `${mastery.total - mastery.answered} unanswered in this case`}</span>
