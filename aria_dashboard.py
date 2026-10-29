@@ -179,7 +179,7 @@ def render_clinical_summary(parsed: dict, lead: str = None):
 
 def render_level_selector(case):
     """Prominent, always-visible choice of how much detail ARIA gives."""
-    with st.container(border=True):
+    with st.container(border=True, key="aria_level_selector"):
         st.markdown("**How would you like ARIA to work with you?**")
         choice = st.radio(
             "ARIA level",

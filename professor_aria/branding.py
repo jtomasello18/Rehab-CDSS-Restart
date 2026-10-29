@@ -124,6 +124,58 @@ WORKSPACE_STYLE = """
     display:none;
 }
 
+/* Evidence Query detail level: radio semantics with a segmented-control surface. */
+.st-key-aria_level_selector {
+    background:#ffffff; border-color:#cbd5e1 !important; border-radius:10px;
+}
+.st-key-aria_level_selector [data-testid="stMarkdownContainer"] strong { color:#1e293b !important; }
+.st-key-aria_level_selector div[role="radiogroup"] {
+    display:flex !important; flex-wrap:wrap !important; gap:4px !important;
+    width:fit-content; max-width:100%; box-sizing:border-box;
+    padding:4px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px;
+}
+.st-key-aria_level_selector div[role="radiogroup"] > div { flex:1 1 auto; }
+.st-key-aria_level_selector div[role="radiogroup"] label {
+    position:relative; display:flex; align-items:center; justify-content:center;
+    flex:1 1 auto; min-height:42px; margin:0 !important; padding:8px 16px !important;
+    background:#ffffff; border:1px solid #e2e8f0 !important; border-radius:5px;
+    color:#334155 !important; cursor:pointer; transition:background .15s, border-color .15s;
+}
+/* Visually hide the legacy circle while preserving its native keyboard input. */
+.st-key-aria_level_selector div[role="radiogroup"] label > div:first-child {
+    position:absolute !important; width:1px !important; height:1px !important;
+    overflow:hidden; clip-path:inset(50%); padding:0 !important;
+}
+/* React Aria keeps its accessible input in a separate visually hidden span. */
+.st-key-aria_level_selector [data-testid="stRadioOption"] > span + div > div:first-child:not([data-testid="stMarkdownContainer"]) {
+    display:none !important;
+}
+.st-key-aria_level_selector div[role="radiogroup"] label p {
+    color:inherit !important; font-size:14px !important; font-weight:600 !important;
+    white-space:nowrap; margin:0;
+}
+.st-key-aria_level_selector div[role="radiogroup"] label:hover {
+    background:#f0f7f9; border-color:#94b9c3 !important;
+}
+.st-key-aria_level_selector div[role="radiogroup"] label:has(input:checked),
+.st-key-aria_level_selector div[role="radiogroup"] label[data-checked="true"] {
+    background:#145b6e !important; border-color:#145b6e !important; color:#ffffff !important;
+}
+.st-key-aria_level_selector div[role="radiogroup"] label:has(input:checked):hover {
+    background:#0f4c5c !important;
+}
+.st-key-aria_level_selector div[role="radiogroup"] label:has(input:focus-visible) {
+    outline:2px solid #145b6e; outline-offset:2px;
+}
+.st-key-aria_level_selector [data-testid="stCaptionContainer"] p {
+    color:#64748b !important; font-size:13px !important; line-height:1.5;
+}
+@media (max-width:640px) {
+    .st-key-aria_level_selector div[role="radiogroup"] { width:100%; }
+    .st-key-aria_level_selector div[role="radiogroup"] > div { flex:1 1 40%; }
+    .st-key-aria_level_selector div[role="radiogroup"] label { flex:1 1 40%; padding:8px 10px !important; }
+}
+
 /* Read-only pilot caseload cards, with one connected active chart. */
 [data-testid="stSidebar"] { background:#f8fafc !important; border-right:1px solid #cbd5e1; }
 .aria-caseload-heading {
