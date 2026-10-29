@@ -297,7 +297,7 @@ class ScribeBridgeTests(unittest.TestCase):
 
     def test_legacy_navigation_name_migrates_to_aria_scribe(self):
         from aria_dashboard import VIEWS
-        self.assertEqual(VIEWS, ['EHR Sync & Intake', 'Evidence Bridge', 'Evidence & Guidance', 'Patient Tracker', 'Measures & Trends', 'ARIA Scribe', 'ARIA Education'])
+        self.assertEqual(VIEWS, ['Patient Tracker', 'Measures & Trends', 'Evidence Bridge', 'EHR Sync', 'Evidence & Guidance', 'ARIA Scribe', 'ARIA Education'])
         app = AppTest.from_string('from aria_dashboard import ensure_state\nensure_state()')
         app.session_state['view'] = 'ARIA Chart'
         app.run()

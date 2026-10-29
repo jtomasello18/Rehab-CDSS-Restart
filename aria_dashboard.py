@@ -78,14 +78,14 @@ LEVEL_DESCRIPTIONS = {
     "Deep teaching": "I'll give a fuller teaching response with the reasoning explained.",
 }
 
-V_INTAKE = "EHR Sync & Intake"
+V_INTAKE = "EHR Sync"
 V_PROGRESS_NOTE = "Patient Tracker"
 V_MEASURES_TRENDS = "Measures & Trends"
 V_SCRIBE = "ARIA Scribe"
 V_EDUCATION = "ARIA Education"
 V_EVIDENCE_BRIDGE = "Evidence Bridge"
 V_EVIDENCE = "Evidence & Guidance"
-VIEWS = [V_INTAKE, V_EVIDENCE_BRIDGE, V_EVIDENCE, V_PROGRESS_NOTE, V_MEASURES_TRENDS, V_SCRIBE, V_EDUCATION]
+VIEWS = [V_PROGRESS_NOTE, V_MEASURES_TRENDS, V_EVIDENCE_BRIDGE, V_INTAKE, V_EVIDENCE, V_SCRIBE, V_EDUCATION]
 
 ECW_CLINICAL_NOTE = ED_VANCE_NOTE
 _LEGACY_NOTE_HASH = "39c47ee876da733e543d3a5182a3e86140c58a4724b258c2f790cf2124fcc996"
@@ -324,6 +324,7 @@ def ensure_state():
     if st.session_state.get("case_picker") not in st.session_state.cases:
         st.session_state.case_picker = "CASE-0001"
     legacy_views = {
+        "EHR Sync & Intake": V_INTAKE,
         "Patient Biometrics": V_MEASURES_TRENDS,
         "Charting": V_SCRIBE,
         "ARIA Chart": V_SCRIBE,
@@ -332,7 +333,7 @@ def ensure_state():
     if st.session_state.get("view") in legacy_views:
         st.session_state.view = legacy_views[st.session_state.view]
     if st.session_state.get("view") not in VIEWS:
-        st.session_state.view = V_INTAKE
+        st.session_state.view = V_PROGRESS_NOTE
 
 
 def create_case(name):
@@ -423,7 +424,7 @@ def render_sidebar():
             with st.expander("Clinical Workflow Guide"):
                 st.markdown(
                     "- Patient chart and MA triage data are automatically synced from eClinicalWorks (eCW).\n"
-                    "- **EHR Sync & Intake**: review the synced note, choose how much detail you want, "
+                    "- **EHR Sync**: review the synced note, choose how much detail you want, "
                     "then have me read it back to confirm.\n"
                     "- **Evidence Bridge**: upload PDFs, explore the knowledge base, and ask source-grounded questions.\n"
                     "- **Evidence & Guidance**: I search PubMed and Evidence Bridge, then talk it through; reply with follow-ups.\n"
@@ -437,7 +438,7 @@ def render_sidebar():
 # Views
 # ---------------------------------------------------------------------------
 def render_intake(case):
-    st.markdown(f"##### EHR Sync & Intake · {case['name']}")
+    st.markdown(f"##### EHR Sync · {case['name']}")
     st.info("Patient chart and MA triage data automatically synced from eClinicalWorks (MRN: 482910).")
 
     render_level_selector(case)
@@ -846,7 +847,7 @@ def render_professor_dashboard(figma_component, role="Viewer"):
         st.markdown("#### Welcome to ARIA")
         st.write("I'm ARIA, your clinical thinking partner for rehabilitation, connected to the eCW chart.")
         st.markdown(
-            "1. **EHR Sync & Intake** — review the patient chart and MA triage data synced from eClinicalWorks. "
+            "1. **EHR Sync** — review the patient chart and MA triage data synced from eClinicalWorks. "
             "This is also where you choose **how much detail you want from me**.\n"
             "2. I'll **read the note back** so you can confirm I've understood it before going further.\n"
             "3. **Evidence Bridge** — upload PDFs, explore the knowledge base, and ask source-grounded questions.\n"

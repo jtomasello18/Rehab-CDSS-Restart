@@ -90,7 +90,7 @@ function CareTeamPulse({ activeView, onSelect }: { activeView: Specialty; onSele
   return (
     <section aria-labelledby="care-team-title">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 id="care-team-title" className="text-sm font-bold text-slate-800">Multidisciplinary Care Team Pulse</h2>
+        <h2 id="care-team-title" className="text-sm font-bold text-slate-800">Team Pulse</h2>
         <p className="text-xs text-slate-500">Case snapshot · Current 10/13 · Select a specialty</p>
       </div>
       <div className="tracker-pulse-grid grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
