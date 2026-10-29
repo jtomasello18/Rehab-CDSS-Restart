@@ -206,8 +206,8 @@ def render_schedule():
                 if lunch:
                     cell_class = "ecw-lunch"
                 appointment = appointments.get((time, provider_index))
-                if time == "03:00 PM" and provider_index == 0:
-                    content = '<button type="button" class="ecw-ed-vance" data-open-ed-vance aria-label="Open Ed Vance chart, 3:00 PM outpatient evaluation">[7] Vance, Ed 05/14/1959 (67Y) — Stroke F/U / Outpatient Eval</button>'
+                if time == "03:00 PM" and provider_index == 3:
+                    content = '<button type="button" class="ecw-ed-vance" data-open-ed-vance aria-label="Open Ed Vance chart, 3:00 PM neurology follow-up">[7] Vance, Ed 05/14/1959 (67Y) — Neurology Stroke F/U</button>'
                 elif appointment:
                     content = f'<div class="ecw-appointment">{appointment}</div>'
                 else:
@@ -221,7 +221,7 @@ def render_schedule():
             on_open_chart_change=open_ed_vance_chart,
         )
         if st.button(
-            "Open Selected Chart: [7] Vance, Ed — 3:00 PM (Outpatient Eval)",
+            "Open Selected Chart: [7] Vance, Ed — 3:00 PM (Neurology F/U)",
             type="primary",
             use_container_width=True,
             key="open_selected_chart",
