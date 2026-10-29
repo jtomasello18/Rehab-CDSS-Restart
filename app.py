@@ -12,7 +12,13 @@ import aria_dashboard
 
 # Streamlit can retain imported modules across script/deployment reruns. Refresh
 # older navigation before importing its renderer so newly deployed tabs appear.
-if aria_dashboard.V_SCRIBE != "ARIA Scribe" or "ARIA Education" not in aria_dashboard.VIEWS:
+EXPECTED_ARIA_VIEWS = [
+    "Patient Tracker", "Measures & Trends", "Evidence Bridge", "Evidence Query",
+    "Evidence & Guidance", "ARIA Scribe", "ARIA Education",
+]
+if (aria_dashboard.VIEWS != EXPECTED_ARIA_VIEWS
+        or aria_dashboard.V_INTAKE != "Evidence Query"
+        or aria_dashboard.V_SCRIBE != "ARIA Scribe"):
     import importlib
     importlib.reload(aria_dashboard)
 

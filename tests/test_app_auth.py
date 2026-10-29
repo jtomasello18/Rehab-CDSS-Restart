@@ -86,6 +86,29 @@ class ClinicalGatewayTests(unittest.TestCase):
         self.assertNotIn('ARIA Chart', tabs.options)
         self.assertEqual(tabs.value, 'ARIA Scribe')
 
+    def test_cached_ehr_sync_navigation_refreshes_to_evidence_query(self):
+        import aria_dashboard
+        app = self.app()
+        app.session_state['authenticated'] = True
+        app.session_state['user_role'] = 'PT'
+        app.session_state['page'] = 'aria_dashboard'
+        app.session_state['view'] = 'EHR Sync'
+        old_views = [label.replace('Evidence Query', 'EHR Sync') for label in aria_dashboard.VIEWS]
+        with patch.object(aria_dashboard, 'V_INTAKE', 'EHR Sync'), \
+             patch.object(aria_dashboard, 'VIEWS', old_views):
+            app.run()
+        self.assertFalse(app.exception)
+        tabs = app.radio(key='view')
+        self.assertEqual(tabs.options[3], 'Evidence Query')
+        self.assertNotIn('EHR Sync', tabs.options)
+        self.assertEqual(tabs.value, 'Evidence Query')
+        header = AppTest.from_string(
+            "from aria_dashboard import ensure_state, active_case, render_intake\n"
+            "ensure_state()\nrender_intake(active_case())"
+        ).run()
+        self.assertFalse(header.exception)
+        self.assertTrue(any('Evidence Query · Ed Vance' in item.value for item in header.markdown))
+
     def test_gateway_sign_in_opens_schedule_without_a_second_login_form(self):
         app = self.app().run()
         app.text_input(key='gateway_username').set_value('ARIAprovider')
