@@ -102,7 +102,6 @@ export const careTeam = [
 export const safetyFlags: Record<Specialty, { title: string; text: string; tone: 'danger' | 'warning' | 'info' }[]> = {
   pt: [
     { tone: 'danger', title: 'FALL RISK FLAG (BBS: 38/56 | 10MWT: 0.35 m/s)', text: '2 near-falls this week due to right swing-phase foot drop catching on carpet.' },
-    { tone: 'warning', title: 'PHARMACOLOGICAL & TEAM FLAG', text: 'Recent Baclofen increase (5mg → 10mg TID on 10/06) may be correlated with gait/balance decline from IRF discharge. Protect R shoulder subluxation (~1 finger) and pace for 20-min aphasia fatigue.' },
   ],
   physician: [
     { tone: 'warning', title: 'PHARMACOLOGICAL FLAG (Baclofen 10mg TID)', text: 'Dose doubling on 10/06 may be correlated with subsequent PT balance drop (BBS 42 → 38/56), slower gait (0.48 → 0.35 m/s), and 2 near-falls.' },
