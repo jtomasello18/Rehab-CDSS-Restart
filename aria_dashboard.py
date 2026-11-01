@@ -78,7 +78,7 @@ LEVEL_DESCRIPTIONS = {
     "Deep teaching": "I'll give a fuller teaching response with the reasoning explained.",
 }
 
-SCRIBE_WRITEBACK_VERSION = 1
+SCRIBE_WRITEBACK_VERSION = 2
 V_INTAKE = "Evidence Query"
 V_PROGRESS_NOTE = "Patient Tracker"
 V_MEASURES_TRENDS = "Measures & Trends"
@@ -818,7 +818,7 @@ def render_scribe(figma_component, role="Viewer"):
                 sync_md_note(st.session_state, signed_soap, request_id)
                 message = MD_SYNC_MESSAGE
             else:
-                message = "Clinical draft marked reviewed. Choose MD Neuro Follow-up to sync to the 11/02 neurology encounter."
+                message = "Clinical draft marked reviewed. Choose MD Neuro Follow-up to sync to the 10/13 3:00 PM neurology encounter."
         except ValueError as error:
             st.session_state.charting_last_signed_request = request_id
             st.session_state.charting_sync_result = {"requestId": request_id, "success": False, "message": str(error)}

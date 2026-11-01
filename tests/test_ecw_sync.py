@@ -12,7 +12,7 @@ from professor_aria.vignette import ED_VANCE_ENCOUNTERS
 
 SOAP = {
     'subjective': 'Reports fatigue after baclofen increase.\nPatient requests medication review.',
-    'objective': 'BP 126/76 mmHg.\nGait: 0.35 m/s; BBS 38/56.',
+    'objective': 'BP 128/78 mmHg.\nGait: 0.35 m/s; BBS 38/56.',
     'assessment': '  Persistent right hemiparesis & fall risk.  ',
     'plan': 'Review baclofen tolerance.\n- Coordinate right AFO assessment.\n<script>alert("unsafe")</script>',
 }
@@ -48,10 +48,10 @@ class EcwWriteBackTests(unittest.TestCase):
         choices = app.selectbox(key='ehr_encounter_selector')
         self.assertEqual(choices.options, [e['label'] for e in ECW_ENCOUNTERS])
         self.assertEqual(choices.value, MD_ENCOUNTER['label'])
-        self.assertIn('In Progress (Unsigned)', ' '.join(c.value for c in app.caption))
+        self.assertIn('In Progress (Pending Encounter)', ' '.join(c.value for c in app.caption))
         markup = self.markup(app)
         self.assertEqual(markup.count(PENDING_TEXT), 4)
-        self.assertIn('BP 126/76 mmHg | HR 70 bpm', markup)
+        self.assertIn('BP 128/78 mmHg | HR 72 bpm', markup)
         self.assertNotIn('97116 therapeutic exercise', markup)
         choices.select(ED_VANCE_ENCOUNTERS[0]['label']).run()
         self.assertFalse(app.exception)
@@ -78,12 +78,12 @@ class EcwWriteBackTests(unittest.TestCase):
             app.run()
         # The editor can contain clinician edits beyond the generated response.
         self.sign(app, edited)
-        self.assertEqual(app.session_state['signed_md_note'], edited)
+        self.assertEqual(app.session_state['signed_md_enc_1013'], edited)
         self.assertEqual(app.session_state['last_scribe_args']['sync_result']['message'], MD_SYNC_MESSAGE)
-        metadata = dict(app.session_state['signed_md_note_metadata'])
+        metadata = dict(app.session_state['signed_md_enc_1013_metadata'])
         self.sign(app, edited)  # Replayed component events cannot re-sign.
-        self.assertEqual(app.session_state['signed_md_note_metadata'], metadata)
-        self.assertEqual(app.session_state['ehr_selected_encounter'], MD_ENCOUNTER['label'])
+        self.assertEqual(app.session_state['signed_md_enc_1013_metadata'], metadata)
+        self.assertEqual(app.session_state['ecw_selected_encounter'], MD_ENCOUNTER['label'])
         app.session_state['scribe_event'] = None
         app.button(key='aria_return_to_ecw').click().run()
         self.assertFalse(app.exception)
@@ -94,7 +94,8 @@ class EcwWriteBackTests(unittest.TestCase):
             self.assertIn(html.escape(value), markup)
         self.assertNotIn('<script>alert', markup)
         self.assertNotIn(PENDING_TEXT, markup)
-        self.assertIn('Electronically signed by S. Lin, MD on 11/02/2026', markup)
+        self.assertIn('Electronically signed by S. Lin, MD on 10/13/2026 at 3:28 PM', markup)
+        self.assertIn('Audit Defense: Moderate MDM Justified via Multi-Provider Review &amp; Prescription Drug Management.', markup)
         self.assertIn('99214 (Level 4 Established Patient)', markup)
         app.selectbox(key='ehr_encounter_selector').select(ED_VANCE_ENCOUNTERS[0]['label']).run()
         self.assertIn('Berg Balance Scale: 38/56', self.markup(app))
@@ -111,7 +112,7 @@ class EcwWriteBackTests(unittest.TestCase):
             with patch('figma_component.render', side_effect=mock_scribe):
                 app.run()
             self.assertFalse(app.exception)
-            self.assertNotIn('signed_md_note', app.session_state)
+            self.assertNotIn('signed_md_enc_1013', app.session_state)
 
     def test_locked_snapshot_survives_new_draft_and_rejects_overwrite(self):
         app = self.app()
@@ -121,17 +122,31 @@ class EcwWriteBackTests(unittest.TestCase):
         app.session_state['scribe_event'] = {'type': 'reset_scribe', 'requestId': 'reset', 'discipline': 'MD Neuro Follow-up'}
         with patch('figma_component.render', side_effect=mock_scribe):
             app.run()
-        self.assertEqual(app.session_state['signed_md_note'], SOAP)
+        self.assertEqual(app.session_state['signed_md_enc_1013'], SOAP)
         self.sign(app, {**SOAP, 'assessment': 'Altered assessment'}, 'overwrite')
-        self.assertEqual(app.session_state['signed_md_note'], SOAP)
+        self.assertEqual(app.session_state['signed_md_enc_1013'], SOAP)
         self.assertFalse(app.session_state['last_scribe_args']['sync_result']['success'])
+
+    def test_previous_november_signature_does_not_sign_october_encounter(self):
+        app = self.app()
+        app.session_state['signed_md_note'] = SOAP
+        app.session_state['signed_md_note_metadata'] = {'encounter': '11/02/2026 — Neurology Stroke F/U (S. Lin, MD)'}
+        app.session_state['ehr_encounter_selector'] = '11/02/2026 — Neurology Stroke F/U (S. Lin, MD)'
+        app.run()
+        self.assertFalse(app.exception)
+        self.assertEqual(app.selectbox(key='ehr_encounter_selector').value, MD_ENCOUNTER['label'])
+        self.assertIn('In Progress (Pending Encounter)', ' '.join(c.value for c in app.caption))
+        self.assertEqual(self.markup(app).count(PENDING_TEXT), 4)
+        self.assertNotIn('signed_md_enc_1013', app.session_state)
+        self.assertEqual(app.session_state['signed_md_note'], SOAP)
+        self.assertEqual([e['label'][:10] for e in ECW_ENCOUNTERS], ['10/13/2026', '10/13/2026', '10/06/2026', '09/29/2026'])
 
     def test_scheduler_opens_new_encounter_and_preserves_session(self):
         app = self.app()
         app.session_state['page'] = 'schedule'
         app.run()
         markup = json.loads(app.get('bidi_component')[0].proto.json)
-        self.assertIn('Monday, November 2, 2026', markup)
+        self.assertIn('Tuesday, October 13, 2026', markup)
         app.button(key='open_selected_chart').click().run()
         self.assertEqual(app.session_state['page'], 'legacy_ehr')
         self.assertEqual(app.selectbox(key='ehr_encounter_selector').value, MD_ENCOUNTER['label'])

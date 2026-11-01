@@ -7,20 +7,20 @@ from .vignette import ED_VANCE_ENCOUNTERS
 
 MD_TEMPLATE = "MD Neuro Follow-up"
 MD_ENCOUNTER = {
-    "label": "11/02/2026 — Neurology Stroke F/U (S. Lin, MD)",
+    "label": "10/13/2026 — 3:00 PM Neurology Stroke F/U (S. Lin, MD)",
     "short": "Neurology Stroke F/U",
     "department": "Outpatient Neurology",
     "provider": "S. Lin, MD",
-    "vitals": "BP 126/76 mmHg | HR 70 bpm",
+    "vitals": "BP 128/78 mmHg | HR 72 bpm",
     "meds": "Baclofen 10mg TID",
 }
 # Keep the shared historical vignette unchanged: tracker metrics still refer to 10/13.
 ECW_ENCOUNTERS = [MD_ENCOUNTER, *ED_VANCE_ENCOUNTERS]
 MD_SYNC_MESSAGE = (
-    "Signed by S. Lin, MD & synced to eClinicalWorks Encounter "
-    "(11/02/2026 — Neurology Stroke F/U)."
+    "Encounter signed by S. Lin, MD and synced to eClinicalWorks "
+    "(Encounter: 10/13/2026 — 3:00 PM Neurology Stroke F/U)."
 )
-PENDING_TEXT = "[Encounter documentation pending — Launch ARIA Scribe to capture and sync note.]"
+PENDING_TEXT = "[Documentation pending — Launch ARIA Scribe to record and structure encounter SOAP note.]"
 
 
 def selected_encounter_index(state):
@@ -33,16 +33,17 @@ def selected_encounter_index(state):
 
 def sync_md_note(state, soap, request_id):
     """Store a reviewed snapshot once; subsequent drafts cannot alter a locked note."""
-    existing = state.get("signed_md_note")
+    existing = state.get("signed_md_enc_1013")
     if existing is not None and existing != soap:
-        raise ValueError("The 11/02 neurology encounter is already signed and locked. Its signed note was preserved.")
+        raise ValueError("The 10/13 3:00 PM neurology encounter is already signed and locked. Its signed note was preserved.")
     if existing is None:
-        state["signed_md_note"] = dict(soap)
-        state["signed_md_note_metadata"] = {
+        state["signed_md_enc_1013"] = dict(soap)
+        state["signed_md_enc_1013_metadata"] = {
             "encounter": MD_ENCOUNTER["label"], "provider": MD_ENCOUNTER["provider"],
             "request_id": request_id,
             "signed_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         }
+    state["ecw_selected_encounter"] = MD_ENCOUNTER["label"]
     state["ehr_selected_encounter"] = MD_ENCOUNTER["label"]
     state["ehr_encounter_index"] = 0
     state["ehr_encounter_selector"] = MD_ENCOUNTER["label"]
@@ -56,14 +57,15 @@ def neurology_note_html(soap=None):
                    else f'<div class="ecw-pending-note">{PENDING_TEXT}</div>')
         sections.append(f'<div class="ecw-purple">{field.title()}:</div>{content}')
     signature = (
-        '<div class="ecw-signature">Electronically signed by S. Lin, MD on 11/02/2026 '
-        '· E/M Coding: 99214 (Level 4 Established Patient)</div>' if soap else ""
+        '<div class="ecw-signature">Electronically signed by S. Lin, MD on 10/13/2026 at 3:28 PM '
+        '· E/M Complexity: 99214 (Level 4 Established Patient) '
+        '· Audit Defense: Moderate MDM Justified via Multi-Provider Review &amp; Prescription Drug Management.</div>' if soap else ""
     )
     return (
         '<div class="ecw-note ecw-neurology"><div class="ecw-brown">PROVIDER / FACILITY HEADER</div>'
         '<p>Hartford Rehabilitation Associates — Outpatient Neurology | Provider: S. Lin, MD '
-        '| DOS: 11/02/2026 | Patient: Vance, Ed | MRN: 482910 | Visit type: Neurology Stroke F/U</p>'
+        '| DOS: 10/13/2026 | Patient: Vance, Ed | MRN: 482910 | Visit type: Neurology Stroke F/U</p>'
         '<div class="ecw-brown">VITALS / MA TRIAGE</div>'
-        '<p>BP 126/76 mmHg | HR 70 bpm | Current Meds: Baclofen 10mg TID | Allergies: Penicillin, Latex</p>'
+        '<p>BP 128/78 mmHg | HR 72 bpm | High Fall Risk | Current Meds: Baclofen 10mg TID | Allergies: Penicillin, Latex</p>'
         + "".join(sections) + signature + '</div>'
     )

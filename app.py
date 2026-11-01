@@ -19,11 +19,15 @@ EXPECTED_ARIA_VIEWS = [
 if (aria_dashboard.VIEWS != EXPECTED_ARIA_VIEWS
         or aria_dashboard.V_INTAKE != "Evidence Query"
         or aria_dashboard.V_SCRIBE != "ARIA Scribe"
-        or getattr(aria_dashboard, "SCRIBE_WRITEBACK_VERSION", None) != 1):
+        or getattr(aria_dashboard, "SCRIBE_WRITEBACK_VERSION", None) != 2):
     import importlib
     importlib.reload(aria_dashboard)
 
 from aria_dashboard import render_professor_dashboard
+import professor_aria.ecw_encounters as ecw_encounters
+if ecw_encounters.MD_ENCOUNTER["label"] != "10/13/2026 — 3:00 PM Neurology Stroke F/U (S. Lin, MD)":
+    import importlib
+    importlib.reload(ecw_encounters)
 from professor_aria.ecw_encounters import (
     ECW_ENCOUNTERS, MD_ENCOUNTER, MD_TEMPLATE, neurology_note_html, selected_encounter_index,
 )
@@ -64,6 +68,7 @@ def open_ed_vance_chart():
     if st.session_state.get("authenticated", False):
         st.session_state.user_role = "PT"
         st.session_state.page = "legacy_ehr"
+        st.session_state.ecw_selected_encounter = MD_ENCOUNTER["label"]
         st.session_state.ehr_selected_encounter = MD_ENCOUNTER["label"]
         st.session_state.ehr_encounter_index = 0
         st.session_state.ehr_encounter_selector = MD_ENCOUNTER["label"]
@@ -181,13 +186,13 @@ def render_schedule():
     with sidebar:
         st.markdown(
             """
-            <div class="ecw-panel"><div class="ecw-panel-title">November 2026</div>
+            <div class="ecw-panel"><div class="ecw-panel-title">October 2026</div>
             <table class="ecw-calendar"><tr><th>Su</th><th>Mo</th><th>Tu</th><th>We</th><th>Th</th><th>Fr</th><th>Sa</th></tr>
-            <tr><td>1</td><td class="selected">2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
-            <tr><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td></tr>
-            <tr><td>15</td><td>16</td><td>17</td><td>18</td><td>19</td><td>20</td><td>21</td></tr>
-            <tr><td>22</td><td>23</td><td>24</td><td>25</td><td>26</td><td>27</td><td>28</td></tr>
-            <tr><td>29</td><td>30</td><td></td><td></td><td></td><td></td><td></td></tr></table></div>
+            <tr><td></td><td></td><td></td><td></td><td>1</td><td>2</td><td>3</td></tr>
+            <tr><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td></tr>
+            <tr><td>11</td><td>12</td><td class="selected">13</td><td>14</td><td>15</td><td>16</td><td>17</td></tr>
+            <tr><td>18</td><td>19</td><td>20</td><td>21</td><td>22</td><td>23</td><td>24</td></tr>
+            <tr><td>25</td><td>26</td><td>27</td><td>28</td><td>29</td><td>30</td><td>31</td></tr></table></div>
             <div class="ecw-panel"><div class="ecw-panel-title">My Providers</div>
             <div class="ecw-check">[x] Morales, J (PT)<br>[x] Green, R (OT)<br>[x] Reed, A (SLP)<br>[x] Lin, S (MD - Neuro)</div></div>
             <div class="ecw-panel"><div class="ecw-panel-title">My Resources</div><div class="ecw-check">[x] Treatment Rooms<br>[x] Outpatient Rehab Center</div></div>
@@ -205,7 +210,7 @@ def render_schedule():
     }
     with schedule:
         grid_rows = [
-            '<div class="ecw-grid-title">Monday, November 2, 2026</div>',
+            '<div class="ecw-grid-title">Tuesday, October 13, 2026</div>',
             '<table class="ecw-grid"><thead><tr><th>Time</th>'
             + "".join(f"<th>{provider}</th>" for provider in providers)
             + "</tr></thead><tbody>"
@@ -403,10 +408,11 @@ def render_legacy_ehr():
         st.rerun()
 
     encounter = encounters[st.session_state.ehr_encounter_index]
+    st.session_state.ecw_selected_encounter = encounter["label"]
     st.session_state.ehr_selected_encounter = encounter["label"]
     is_neurology = encounter["label"] == MD_ENCOUNTER["label"]
-    signed_md_note = st.session_state.get("signed_md_note")
-    status = ("Signed & Locked (Synced via ARIA Scribe)" if signed_md_note else "In Progress (Unsigned)") if is_neurology else "Signed"
+    signed_md_note = st.session_state.get("signed_md_enc_1013")
+    status = ("Signed & Locked (Synced via ARIA Scribe)" if signed_md_note else "In Progress (Pending Encounter)") if is_neurology else "Signed"
     st.caption(f"Encounter: {encounter['label']} | Department: {encounter['department']} | Status: {status}")
     note_column, right_column = st.columns([2.2, 1])
     with note_column:
