@@ -78,6 +78,7 @@ LEVEL_DESCRIPTIONS = {
     "Deep teaching": "I'll give a fuller teaching response with the reasoning explained.",
 }
 
+SCRIBE_WRITEBACK_VERSION = 1
 V_INTAKE = "Evidence Query"
 V_PROGRESS_NOTE = "Patient Tracker"
 V_MEASURES_TRENDS = "Measures & Trends"
@@ -744,6 +745,7 @@ def render_scribe(figma_component, role="Viewer"):
         discipline=st.session_state.get("charting_discipline", "PT Skilled SOAP"),
         draft_source=st.session_state.get("charting_draft_source", "manual"),
         signed=st.session_state.get("charting_signed", False),
+        sync_result=st.session_state.get("charting_sync_result"),
     )
     if provider_role != "PT" or not isinstance(event, dict):
         return
@@ -758,6 +760,7 @@ def render_scribe(figma_component, role="Viewer"):
         st.session_state.charting_soap_note = {field: "" for field in SOAP_FIELDS}
         st.session_state.charting_signed = False
         st.session_state.charting_generation = None
+        st.session_state.charting_sync_result = None
         st.session_state.charting_generated_at = None
         st.session_state.charting_draft_source = "manual"
         discipline = event.get("discipline")
@@ -798,19 +801,37 @@ def render_scribe(figma_component, role="Viewer"):
         st.session_state.charting_generation = {"requestId": request_id, "error": result["error"], "generated_at": generated_at}
         st.rerun()
     elif event.get("type") == "signed":
+        if request_id == st.session_state.get("charting_last_signed_request"):
+            return
         source = event.get("draftSource", "claude")
         if (st.session_state.get("charting_generation") or {}).get("error") and source not in {"local", "manual"}:
             return
+        from professor_aria.ecw_encounters import MD_TEMPLATE, MD_SYNC_MESSAGE, sync_md_note
         try:
-            st.session_state.charting_soap_note = validate_soap(event.get("soap"))
-        except ValueError:
-            return
+            validated = validate_soap(event.get("soap"))
+            # Preserve the editor's exact whitespace as well as its clinical text.
+            signed_soap = {field: event["soap"][field] for field in validated}
+            discipline = event.get("discipline", st.session_state.get("charting_discipline", "PT Skilled SOAP"))
+            if not isinstance(discipline, str) or discipline not in TEMPLATES:
+                raise ValueError("Choose a valid clinical documentation template before signing.")
+            if discipline == MD_TEMPLATE:
+                sync_md_note(st.session_state, signed_soap, request_id)
+                message = MD_SYNC_MESSAGE
+            else:
+                message = "Clinical draft marked reviewed. Choose MD Neuro Follow-up to sync to the 11/02 neurology encounter."
+        except ValueError as error:
+            st.session_state.charting_last_signed_request = request_id
+            st.session_state.charting_sync_result = {"requestId": request_id, "success": False, "message": str(error)}
+            st.rerun()
+        st.session_state.charting_soap_note = signed_soap
         st.session_state.charting_signed = True
         st.session_state.charting_draft_source = source
-        if event.get("discipline") in TEMPLATES:
-            st.session_state.charting_discipline = event["discipline"]
+        st.session_state.charting_discipline = discipline
+        st.session_state.charting_last_signed_request = request_id
+        st.session_state.charting_sync_result = {"requestId": request_id, "success": True, "message": message}
         if isinstance(event.get("transcript"), str):
             st.session_state.charting_transcript = event["transcript"]
+        st.rerun()
 
 
 def render_professor_dashboard(figma_component, role="Viewer"):

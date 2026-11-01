@@ -18,12 +18,15 @@ EXPECTED_ARIA_VIEWS = [
 ]
 if (aria_dashboard.VIEWS != EXPECTED_ARIA_VIEWS
         or aria_dashboard.V_INTAKE != "Evidence Query"
-        or aria_dashboard.V_SCRIBE != "ARIA Scribe"):
+        or aria_dashboard.V_SCRIBE != "ARIA Scribe"
+        or getattr(aria_dashboard, "SCRIBE_WRITEBACK_VERSION", None) != 1):
     import importlib
     importlib.reload(aria_dashboard)
 
 from aria_dashboard import render_professor_dashboard
-from professor_aria.vignette import ED_VANCE_ENCOUNTERS
+from professor_aria.ecw_encounters import (
+    ECW_ENCOUNTERS, MD_ENCOUNTER, MD_TEMPLATE, neurology_note_html, selected_encounter_index,
+)
 from figma_component import render as figma_component
 
 
@@ -61,6 +64,9 @@ def open_ed_vance_chart():
     if st.session_state.get("authenticated", False):
         st.session_state.user_role = "PT"
         st.session_state.page = "legacy_ehr"
+        st.session_state.ehr_selected_encounter = MD_ENCOUNTER["label"]
+        st.session_state.ehr_encounter_index = 0
+        st.session_state.ehr_encounter_selector = MD_ENCOUNTER["label"]
 
 
 def render_secure_gateway():
@@ -175,13 +181,13 @@ def render_schedule():
     with sidebar:
         st.markdown(
             """
-            <div class="ecw-panel"><div class="ecw-panel-title">October 2026</div>
+            <div class="ecw-panel"><div class="ecw-panel-title">November 2026</div>
             <table class="ecw-calendar"><tr><th>Su</th><th>Mo</th><th>Tu</th><th>We</th><th>Th</th><th>Fr</th><th>Sa</th></tr>
-            <tr><td></td><td></td><td></td><td></td><td>1</td><td>2</td><td>3</td></tr>
-            <tr><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td></tr>
-            <tr><td>11</td><td>12</td><td class="selected">13</td><td>14</td><td>15</td><td>16</td><td>17</td></tr>
-            <tr><td>18</td><td>19</td><td>20</td><td>21</td><td>22</td><td>23</td><td>24</td></tr>
-            <tr><td>25</td><td>26</td><td>27</td><td>28</td><td>29</td><td>30</td><td>31</td></tr></table></div>
+            <tr><td>1</td><td class="selected">2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr>
+            <tr><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td><td>13</td><td>14</td></tr>
+            <tr><td>15</td><td>16</td><td>17</td><td>18</td><td>19</td><td>20</td><td>21</td></tr>
+            <tr><td>22</td><td>23</td><td>24</td><td>25</td><td>26</td><td>27</td><td>28</td></tr>
+            <tr><td>29</td><td>30</td><td></td><td></td><td></td><td></td><td></td></tr></table></div>
             <div class="ecw-panel"><div class="ecw-panel-title">My Providers</div>
             <div class="ecw-check">[x] Morales, J (PT)<br>[x] Green, R (OT)<br>[x] Reed, A (SLP)<br>[x] Lin, S (MD - Neuro)</div></div>
             <div class="ecw-panel"><div class="ecw-panel-title">My Resources</div><div class="ecw-check">[x] Treatment Rooms<br>[x] Outpatient Rehab Center</div></div>
@@ -199,7 +205,7 @@ def render_schedule():
     }
     with schedule:
         grid_rows = [
-            '<div class="ecw-grid-title">Tuesday, October 13, 2026</div>',
+            '<div class="ecw-grid-title">Monday, November 2, 2026</div>',
             '<table class="ecw-grid"><thead><tr><th>Time</th>'
             + "".join(f"<th>{provider}</th>" for provider in providers)
             + "</tr></thead><tbody>"
@@ -237,7 +243,13 @@ def render_schedule():
 
 
 def render_legacy_ehr():
-    """Render the eCW 11e-style historical progress note workspace."""
+    """Render signed historical encounters and the live session-backed neurology note."""
+    encounters = ECW_ENCOUNTERS
+    current_index = selected_encounter_index(st.session_state)
+    encounter = encounters[current_index]
+    encounter_labels = [item["label"] for item in encounters]
+    if st.session_state.get("ehr_encounter_selector") not in encounter_labels:
+        st.session_state.pop("ehr_encounter_selector", None)
     st.markdown(
         """
         <style>
@@ -318,7 +330,12 @@ def render_legacy_ehr():
         .ecw-brown { color:#8b4513; font-weight:bold; border-bottom:1px solid #c8a58a; margin-top:10px; }
         .ecw-purple { color:#6a1b9a; font-weight:bold; }
         .ecw-green-text { color:#2e7d32; }
-        .ecw-note { font-family:Georgia,'Times New Roman',serif; font-size:12px; line-height:1.25; }
+        .ecw-note { color:#263238; font-family:Georgia,'Times New Roman',serif; font-size:12px; line-height:1.25; }
+        .st-key-ecw_note_panel { background:#ffffff !important; border-color:#cbd5e1 !important; }
+        .ecw-note.ecw-neurology { font-size:14px; line-height:1.6; }
+        .ecw-pending-note { margin:6px 0 14px; padding:12px; border:1px dashed #cbd5e1; border-radius:6px; background:#f8fafc; color:#64748b; font-style:italic; }
+        .ecw-signed-section { white-space:pre-wrap; overflow-wrap:anywhere; margin:6px 0 16px; line-height:1.6; }
+        .ecw-signature { margin-top:18px; padding:12px 0; border-top:1px solid #cbd5e1; color:#145b6e; font-weight:bold; }
         .ecw-note p { margin:4px 0; } .ecw-note table { border-collapse:collapse; width:100%; font-family:Arial,sans-serif; font-size:10px; }
         .ecw-note td,.ecw-note th { border:1px solid #cfcfcf; padding:3px 5px; text-align:left; }
         .ecw-note th { background:#eee7f4; color:#6a1b9a; }
@@ -338,27 +355,23 @@ def render_legacy_ehr():
           <span class="ecw-badge">INFO</span><span class="ecw-badge">HUB</span><span class="ecw-badge">ASK EVA</span>
         </div>
         <div class="ecw-sticky-row">
-          <div class="ecw-sticky ecw-yellow"><b>Weight / Vitals</b><br>Wt: 178 lbs | BP: 128/78 | Fall Risk: HIGH</div>
+          <div class="ecw-sticky ecw-yellow"><b>Weight / Vitals</b><br>Wt: 178 lbs | __ECW_VITALS__ | Fall Risk: HIGH</div>
           <div class="ecw-sticky ecw-green"><b>Billing / Ins</b><br>Medicare Part B | Auth: 12/20 visits used | Copay: $0</div>
           <div class="ecw-sticky ecw-light"><b>Notes</b><br>Spouse (Martha) at bedside. Mild expressive aphasia.</div>
           <div class="ecw-sticky ecw-pink"><b>Secure / Alerts</b><br>ALLERGIES: Penicillin (Hives) | Latex (Mild)</div>
         </div>
         <div class="ecw-ribbon">Medical Summary | CDSS | Rx | Labs | DI | Procedures | Encounters | Patient Docs | Flowsheets | Notes</div>
         </div>
-        """,
+        """.replace("__ECW_VITALS__", encounter["vitals"]),
         unsafe_allow_html=True,
     )
 
-    encounters = ED_VANCE_ENCOUNTERS
-    if "ehr_encounter_index" not in st.session_state:
-        st.session_state.ehr_encounter_index = 0
-    encounter_labels = [encounter["label"] for encounter in encounters]
-    if st.session_state.get("ehr_encounter_selector") not in encounter_labels:
-        st.session_state.pop("ehr_encounter_selector", None)
-    current_index = st.session_state.ehr_encounter_index
     toolbar_left, toolbar_mid, toolbar_right = st.columns([1.2, 1.5, 2.7])
     with toolbar_left:
         if st.button("Launch ARIA", type="primary", use_container_width=True, key="ehr_launch_aria"):
+            if encounters[current_index]["label"] == MD_ENCOUNTER["label"]:
+                st.session_state.charting_discipline = MD_TEMPLATE
+                st.session_state.view = aria_dashboard.V_SCRIBE
             st.session_state.page = "aria_dashboard"
             st.rerun()
     with toolbar_mid:
@@ -373,7 +386,7 @@ def render_legacy_ehr():
                 st.rerun()
         with selector:
             selected_label = st.selectbox(
-                "Historical encounter",
+                "Encounter",
                 encounter_labels,
                 index=current_index,
                 key="ehr_encounter_selector",
@@ -390,42 +403,49 @@ def render_legacy_ehr():
         st.rerun()
 
     encounter = encounters[st.session_state.ehr_encounter_index]
-    st.caption(f"Encounter: {encounter['label']} | Department: {encounter['department']} | Status: Signed")
+    st.session_state.ehr_selected_encounter = encounter["label"]
+    is_neurology = encounter["label"] == MD_ENCOUNTER["label"]
+    signed_md_note = st.session_state.get("signed_md_note")
+    status = ("Signed & Locked (Synced via ARIA Scribe)" if signed_md_note else "In Progress (Unsigned)") if is_neurology else "Signed"
+    st.caption(f"Encounter: {encounter['label']} | Department: {encounter['department']} | Status: {status}")
     note_column, right_column = st.columns([2.2, 1])
     with note_column:
-        with st.container(height=520, border=True):
-            st.markdown(
-                f"""
-                <div class="ecw-note">
-                <div class="ecw-brown">PROVIDER / FACILITY HEADER</div>
-                <p><b>Hartford Rehabilitation Associates — {encounter['department']}</b><br>
-                Provider: {encounter['provider']} &nbsp; | &nbsp; Supervising MD: S. Lin, MD &nbsp; | &nbsp; DOS: {encounter['label'][:10]}<br>
-                Patient: Vance, Ed &nbsp; | &nbsp; MRN: 482910 &nbsp; | &nbsp; Visit type: {encounter['short']}</p>
-                <div class="ecw-purple">Subjective:</div>
-                <p><b>Chief Complaint:</b> Right-sided weakness, gait instability, and difficulty using R hand.<br>
-                <b>HPI:</b> 67yo male, {encounter['weeks_post_stroke']} weeks post left MCA ischemic stroke. {encounter['subjective']}<br>
-                <b>ROS - 10 Systems Reviewed:</b> Constitutional: fatigue reported; Eyes: no acute vision change; ENT: no dysphagia today; CV: no chest pain; Resp: no SOB; GI: no nausea; GU: continent; MSK: R shoulder discomfort; Neuro: expressive aphasia, R hemiparesis; Psych: cooperative, mildly frustrated with slowed mobility. <span class="ecw-green-text">All other systems negative.</span><br>
-                <b>Functional Status:</b> {encounter['mobility']}. Goal: walk to mailbox and self-feed with R hand.</p>
-                <div class="ecw-purple">Current Medications:</div>
-                <p>{encounter['meds']}<br><span class="ecw-green-text">Discontinued: none documented. Medication reconciliation reviewed with spouse.</span></p>
-                <div class="ecw-purple">Allergies:</div><p>Penicillin — hives; Latex — mild reaction.</p>
-                <div class="ecw-purple">Vitals:</div><p>{encounter['vitals']}</p>
-                <div class="ecw-brown">Objective / Rehab Exam:</div>
-                <p><b>ROM:</b> R shoulder flexion 0-135° with pain at end range; R ankle DF to neutral with knee extended. <b>MMT:</b> R hip flex 3+/5, knee ext 4-/5, ankle DF 3/5; LLE 5/5. <b>Spasticity:</b> {encounter['tone']}.</p>
-                <table><tr><th>Spasticity Ashworth Table</th><th>Right</th><th>Left</th><th>Comment</th></tr>
-                <tr><td>Elbow flexors</td><td>{'Grade 2' if 'Grade 2' in encounter['tone'] else 'Not reassessed'}</td><td>0</td><td>Flexor synergy</td></tr>
-                <tr><td>Ankle plantarflexors</td><td>{'Grade 1+' if 'Grade 1+' in encounter['tone'] else 'Not reassessed'}</td><td>0</td><td>Right ankle tone</td></tr></table>
-                <p><b>Standardized Outcome Measures:</b> {encounter['measurements']}<br>
-                <b>Gait Analysis:</b> {encounter['gait']}<br><b>Brunnstrom:</b> {encounter['staging']}.</p>
-                <div class="ecw-brown">Assessment &amp; ICD-10 Codes:</div>
-                <p>{encounter['assessment']}<br><b>Codes:</b> I69.351 (hemiplegia following cerebral infarction, right dominant side); R26.89 (other abnormalities of gait); M62.838 (other muscle spasm); R26.81 (unsteadiness on feet).</p>
-                <div class="ecw-brown">Plan &amp; CPT Billing Codes:</div>
-                <p>{encounter['plan']} Continue HEP and caregiver education. <b>CPT:</b> 97110 therapeutic exercise; 97112 neuromuscular re-education; 97116 gait training; evaluation coding per documented complexity. Patient/spouse verbalized understanding. Electronically signed {encounter['provider']}.</p>
-                <div class="ecw-actions">Send | Print | Fax | Record | Details | Templates | Claim | Letters | Ink | Attachments</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        with st.container(height=520, border=True, key="ecw_note_panel"):
+            if is_neurology:
+                st.markdown(neurology_note_html(signed_md_note), unsafe_allow_html=True)
+            else:
+                st.markdown(
+                    f"""
+                    <div class="ecw-note">
+                    <div class="ecw-brown">PROVIDER / FACILITY HEADER</div>
+                    <p><b>Hartford Rehabilitation Associates — {encounter['department']}</b><br>
+                    Provider: {encounter['provider']} &nbsp; | &nbsp; Supervising MD: S. Lin, MD &nbsp; | &nbsp; DOS: {encounter['label'][:10]}<br>
+                    Patient: Vance, Ed &nbsp; | &nbsp; MRN: 482910 &nbsp; | &nbsp; Visit type: {encounter['short']}</p>
+                    <div class="ecw-purple">Subjective:</div>
+                    <p><b>Chief Complaint:</b> Right-sided weakness, gait instability, and difficulty using R hand.<br>
+                    <b>HPI:</b> 67yo male, {encounter['weeks_post_stroke']} weeks post left MCA ischemic stroke. {encounter['subjective']}<br>
+                    <b>ROS - 10 Systems Reviewed:</b> Constitutional: fatigue reported; Eyes: no acute vision change; ENT: no dysphagia today; CV: no chest pain; Resp: no SOB; GI: no nausea; GU: continent; MSK: R shoulder discomfort; Neuro: expressive aphasia, R hemiparesis; Psych: cooperative, mildly frustrated with slowed mobility. <span class="ecw-green-text">All other systems negative.</span><br>
+                    <b>Functional Status:</b> {encounter['mobility']}. Goal: walk to mailbox and self-feed with R hand.</p>
+                    <div class="ecw-purple">Current Medications:</div>
+                    <p>{encounter['meds']}<br><span class="ecw-green-text">Discontinued: none documented. Medication reconciliation reviewed with spouse.</span></p>
+                    <div class="ecw-purple">Allergies:</div><p>Penicillin — hives; Latex — mild reaction.</p>
+                    <div class="ecw-purple">Vitals:</div><p>{encounter['vitals']}</p>
+                    <div class="ecw-brown">Objective / Rehab Exam:</div>
+                    <p><b>ROM:</b> R shoulder flexion 0-135° with pain at end range; R ankle DF to neutral with knee extended. <b>MMT:</b> R hip flex 3+/5, knee ext 4-/5, ankle DF 3/5; LLE 5/5. <b>Spasticity:</b> {encounter['tone']}.</p>
+                    <table><tr><th>Spasticity Ashworth Table</th><th>Right</th><th>Left</th><th>Comment</th></tr>
+                    <tr><td>Elbow flexors</td><td>{'Grade 2' if 'Grade 2' in encounter['tone'] else 'Not reassessed'}</td><td>0</td><td>Flexor synergy</td></tr>
+                    <tr><td>Ankle plantarflexors</td><td>{'Grade 1+' if 'Grade 1+' in encounter['tone'] else 'Not reassessed'}</td><td>0</td><td>Right ankle tone</td></tr></table>
+                    <p><b>Standardized Outcome Measures:</b> {encounter['measurements']}<br>
+                    <b>Gait Analysis:</b> {encounter['gait']}<br><b>Brunnstrom:</b> {encounter['staging']}.</p>
+                    <div class="ecw-brown">Assessment &amp; ICD-10 Codes:</div>
+                    <p>{encounter['assessment']}<br><b>Codes:</b> I69.351 (hemiplegia following cerebral infarction, right dominant side); R26.89 (other abnormalities of gait); M62.838 (other muscle spasm); R26.81 (unsteadiness on feet).</p>
+                    <div class="ecw-brown">Plan &amp; CPT Billing Codes:</div>
+                    <p>{encounter['plan']} Continue HEP and caregiver education. <b>CPT:</b> 97110 therapeutic exercise; 97112 neuromuscular re-education; 97116 gait training; evaluation coding per documented complexity. Patient/spouse verbalized understanding. Electronically signed {encounter['provider']}.</p>
+                    <div class="ecw-actions">Send | Print | Fax | Record | Details | Templates | Claim | Letters | Ink | Attachments</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
     with right_column:
         st.markdown('<div class="ecw-rightbar">Overview | DRTLA | History | CDSS | Order Sets | Templates | eEHX</div>', unsafe_allow_html=True)
         st.markdown('<div class="ecw-alert">Right Panel data last modified on: 10/06/2026 04:15 PM</div>', unsafe_allow_html=True)
